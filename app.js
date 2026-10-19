@@ -59,14 +59,23 @@ function renderSlots() {
   slots.innerHTML = "";
   selected.forEach((c, index) => {
     const el = document.createElement("div");
-    el.className = "slot";
-    el.innerHTML = `<button class="remove" aria-label="Убрать">×</button><span>▧</span><span class="slot-name">${c.name}</span><span class="slot-qty">×${c.qty}</span>`;
-    el.querySelector(".remove").addEventListener("click", () => { selected.splice(index,1); renderSlots(); });
+    el.className = "slot deck-slot";
+    const layers = Math.min(4, Math.max(1, Math.ceil(c.qty / 3)));
+    const stack = Array.from({length: layers}, (_, i) => `<span class="stack-card stack-${i+1}">${c.symbol}</span>`).join("");
+    el.innerHTML = `<button class="remove" aria-label="Убрать стопку" title="Убрать стопку">×</button><div class="stack-visual" style="--art:${c.art}">${stack}<span class="stack-count">×${c.qty}</span></div><span class="slot-name">${c.name}</span><div class="stack-controls"><button class="qty-btn minus" aria-label="Убрать одну">−</button><span>×${c.qty}</span><button class="qty-btn plus" aria-label="Добавить одну">+</button></div>`;
+    el.querySelector(".remove").addEventListener("click", () => { selected.splice(index, 1); renderSlots(); });
+    el.querySelector(".minus").addEventListener("click", () => { c.qty--; if (c.qty <= 0) selected.splice(index, 1); renderSlots(); renderPicker(); });
+    el.querySelector(".plus").addEventListener("click", () => {
+      const original = inventory.find(x => x.name === c.name);
+      const used = selected.filter(x => x.name === c.name).reduce((sum, x) => sum + x.qty, 0);
+      if (used < original.qty) c.qty++;
+      renderSlots(); renderPicker();
+    });
     slots.appendChild(el);
   });
   const plus = document.createElement("button");
-  plus.className = "slot";
-  plus.innerHTML = "<span style='font-size:30px'>＋</span><span class='slot-name'>Добавить карту</span>";
+  plus.className = "slot add-slot";
+  plus.innerHTML = "<span class='add-symbol'>＋</span><span class='slot-name'>Добавить карту</span>";
   plus.addEventListener("click", openPicker);
   slots.appendChild(plus);
   document.getElementById("craft-button").disabled = selected.length < 2;
@@ -81,16 +90,25 @@ function renderPicker() {
   const query = document.getElementById("picker-search").value.toLowerCase();
   const grid = document.getElementById("picker-grid");
   grid.innerHTML = inventory.filter(c => c.name.toLowerCase().includes(query)).map(c => {
-    const used = selected.filter(x => x.name === c.name).reduce((s,x) => s+x.qty,0);
+    const used = selected.filter(x => x.name === c.name).reduce((sum, x) => sum + x.qty, 0);
     const available = c.qty - used;
-    return `<button class="picker-card" data-name="${c.name}" ${available <= 0 ? "disabled" : ""}>${c.symbol}<br>${c.name}<small>Доступно: ×${available}</small></button>`;
+    return `<div class="picker-card ${available <= 0 ? 'unavailable' : ''}"><div class="picker-card-symbol" style="--art:${c.art}">${c.symbol}</div><b>${c.name}</b><small>Доступно: ×${available}</small><div class="picker-actions"><button class="add-one" data-name="${c.name}" ${available <= 0 ? "disabled" : ""}>+1</button><input class="quantity-input" data-qty-for="${c.name}" type="number" min="1" max="${Math.max(1, available)}" value="${Math.min(available || 1, 1)}" aria-label="Количество ${c.name}" ${available <= 0 ? "disabled" : ""}><button class="add-quantity" data-name="${c.name}" ${available <= 0 ? "disabled" : ""}>Добавить</button></div></div>`;
   }).join("");
-  grid.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-    const c = inventory.find(x => x.name === b.dataset.name);
-    const existing = selected.find(x => x.name === c.name);
-    if (existing) existing.qty += 1; else selected.push({name:c.name,qty:1});
-    renderSlots(); renderPicker();
+  grid.querySelectorAll(".add-one").forEach(b => b.addEventListener("click", () => addToCraft(b.dataset.name, 1)));
+  grid.querySelectorAll(".add-quantity").forEach(b => b.addEventListener("click", () => {
+    const input = grid.querySelector(`[data-qty-for="${b.dataset.name}"]`);
+    addToCraft(b.dataset.name, Number(input.value));
   }));
+}
+function addToCraft(name, amount) {
+  const c = inventory.find(x => x.name === name);
+  if (!c || !Number.isFinite(amount) || amount < 1) return;
+  const used = selected.filter(x => x.name === name).reduce((sum, x) => sum + x.qty, 0);
+  const add = Math.min(Math.floor(amount), c.qty - used);
+  if (add <= 0) return;
+  const existing = selected.find(x => x.name === name);
+  if (existing) existing.qty += add; else selected.push({name:c.name, qty:add});
+  renderSlots(); renderPicker();
 }
 document.getElementById("open-picker").addEventListener("click", openPicker);
 document.getElementById("close-picker").addEventListener("click", () => document.getElementById("picker").classList.add("hidden"));
