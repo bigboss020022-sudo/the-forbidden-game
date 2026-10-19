@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#20251f">
+  <title>The Forbidden</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="avatar">♜</div>
+    <div class="player"><strong>Путешественник</strong><small>Ур. 1 · Бета</small></div>
+    <div class="resources"><span>🪙 <b>120</b></span><span>💎 <b>25</b></span></div>
+  </header>
+
+  <main id="app">
+    <section class="screen active" id="home">
+      <div class="hero">
+        <div class="event-chip" onclick="showScreen('trials')"><span class="event-mark">✦</span><span><b>Смерть</b><small>Событие активно</small></span><span>›</span></div>
+        <div class="hero-copy"><p class="eyebrow">ЗАБЫТЫЕ КОРОЛЕВСТВА</p><h1>The Forbidden</h1><p>У каждого открытия есть своя история.</p></div>
+      </div>
+      <button class="primary small-primary" id="get-card">✦ Получить карту</button>
+      <p class="hint" id="home-note">Твоя история начинается здесь.</p>
+    </section>
+
+    <section class="screen" id="deck">
+      <div class="section-head"><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1>Общая колода</h1></div>
+      <input class="search" id="card-search" placeholder="Найти карту...">
+      <div class="filters" id="filters">
+        <button class="filter active" data-filter="Все">Все</button><button class="filter" data-filter="Обычные">Обычные</button><button class="filter" data-filter="Особые">Особые</button><button class="filter" data-filter="Всадники">Всадники</button>
+      </div>
+      <div class="cards-grid" id="cards-grid"></div>
+      <div class="detail hidden" id="card-detail"></div>
+    </section>
+
+    <section class="screen" id="craft">
+      <div class="section-head"><p class="eyebrow">МАСТЕРСКАЯ</p><h1>Крафт</h1><p>Соединяй карты. Открывай новые смыслы.</p></div>
+      <div class="alchemy">
+        <div class="rune">✧　ᚷ　✧</div>
+        <div class="slots" id="slots"></div>
+        <button class="primary craft-button" id="craft-button" disabled>Крафт</button>
+      </div>
+      <div class="collection-head"><h2>Мои карты</h2><button class="text-button" id="open-picker">＋ Добавить</button></div>
+      <div class="picker hidden" id="picker">
+        <input class="search" id="picker-search" placeholder="Найти карту...">
+        <div id="picker-grid" class="picker-grid"></div>
+        <button class="secondary" id="close-picker">Готово</button>
+      </div>
+      <p class="hint" id="craft-note">Выбери компоненты на столе. Это демонстрация: карты не расходуются.</p>
+    </section>
+
+    <section class="screen" id="trials">
+      <div class="section-head"><p class="eyebrow">ГЛОБАЛЬНЫЕ СОБЫТИЯ</p><h1>Испытания</h1><p>Четыре пути. Четыре испытания.</p></div>
+      <div class="trial-list">
+        <button class="trial" data-horseman="Смерть"><span>☠</span><b>Смерть</b><small>5 этапов</small><i>›</i></button>
+        <button class="trial" data-horseman="Чума"><span>♧</span><b>Чума</b><small>3 этапа</small><i>›</i></button>
+        <button class="trial" data-horseman="Война"><span>⚔</span><b>Война</b><small>4 этапа</small><i>›</i></button>
+        <button class="trial" data-horseman="Голод"><span>⌁</span><b>Голод</b><small>3 этапа</small><i>›</i></button>
+      </div>
+      <p class="hint" id="trial-note">Выбери Всадника, чтобы посмотреть его испытание.</p>
+    </section>
+
+    <section class="screen" id="book">
+      <div class="section-head"><p class="eyebrow">ЗАПРЕТНЫЙ АРХИВ</p><h1>Книга табу</h1><p>Карты, хранящиеся отдельно от активной колоды.</p></div>
+      <div class="empty-book">♧<h2>Архив пока пуст</h2><p>Перемещённые карты появятся здесь.</p></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-screen="home"><span>♜</span><small>Главная</small></button>
+    <button class="nav-item" data-screen="deck"><span>▤</span><small>Колода</small></button>
+    <button class="nav-item" data-screen="craft"><span>⚒</span><small>Крафт</small></button>
+    <button class="nav-item" data-screen="trials"><span>⚔</span><small>Испытания</small></button>
+    <button class="nav-item" data-screen="book"><span>▧</span><small>Книга табу</small></button>
+  </nav>
+  <script src="app.js"></script>
+</body>
+</html>
