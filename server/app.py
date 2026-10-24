@@ -137,7 +137,7 @@ def validate_init_data(raw: str) -> dict:
         secret = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
         expected = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(expected, received_hash):
-            raise HTTPException(status_code=401, detail="Telegram signature check failed")
+            raise HTTPException(status_code=401, detail="Telegram signature check failed. Check that Render BOT_TOKEN matches the token for the bot that owns this Mini App, then reopen it in Telegram.")
         user = json.loads(pairs["user"])
         return {"id": str(user["id"]), "first_name": user.get("first_name", "Player")}
     except HTTPException:
@@ -152,7 +152,16 @@ def require_user(x_telegram_init_data: str | None):
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "The Forbidden API", "version": app.version}
+    # Report configuration presence only; never expose secrets.
+    return {
+        "ok": True,
+        "service": "The Forbidden API",
+        "version": app.version,
+        "config": {
+            "bot_token_configured": bool(BOT_TOKEN),
+            "database_url_configured": bool(DATABASE_URL),
+        },
+    }
 
 
 @app.get("/api/catalog")
