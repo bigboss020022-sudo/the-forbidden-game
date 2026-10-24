@@ -18,7 +18,7 @@
       <div class="scene-shade"></div>
       <div class="event-chip" id="event-chip"><span>✦</span><span><b>Смерть</b><small>Событие активно</small></span><span>›</span></div>
       <div class="home-copy"><p class="eyebrow">ЗАБЫТЫЕ КОРОЛЕВСТВА</p><h1>THE<br>FORBIDDEN</h1><p>«Мир помнит то,<br>что ты пытаешься забыть…»</p></div>
-      <div class="home-actions"><button class="primary red" id="get-card">✦ Получить карту</button><div class="quick-actions"><button class="ornate-button" data-go="trials">♜ <span>События</span></button><button class="ornate-button" data-go="deck">▤ <span>Мои карты</span></button><button class="ornate-button" data-go="book">♧ <span>Книга табу</span></button></div></div>
+      <div class="home-actions"><button class="primary red" id="get-card">✦ Получить карту</button></div>
       <p class="hint" id="home-note">Твоя история начинается здесь.</p>
     </section>
 
@@ -37,7 +37,7 @@
 
     <section class="screen scene book-scene" id="book">
       <div class="scene-shade"></div><div class="section-title"><span class="title-icon">♧</span><div><p class="eyebrow">ЗАПРЕТНЫЙ АРХИВ</p><h1>Книга табу</h1><p>Некоторые знания лучше не открывать…</p></div></div>
-      <div class="book-content glass-panel"><div class="filters" id="book-filters"><button class="filter active" data-book-filter="Все">Все</button><button class="filter" data-book-filter="Сущности">Сущности</button><button class="filter" data-book-filter="Места">Места</button><button class="filter" data-book-filter="События">События</button></div><input class="search" id="book-search" placeholder="⌕ Поиск в книге…"><div class="lore-grid" id="lore-grid"></div><p class="hint">Неизвестные страницы откроются по мере исследования мира.</p></div>
+      <div class="book-content glass-panel"><div class="taboo-toolbar"><b>Мои карты в Книге табу</b><button class="primary gold small" id="open-taboo-picker">＋ Добавить карту</button></div><div id="taboo-owned" class="taboo-owned"></div><div class="filters" id="book-filters"><button class="filter active" data-book-filter="Все">Все</button><button class="filter" data-book-filter="Сущности">Сущности</button><button class="filter" data-book-filter="Места">Места</button><button class="filter" data-book-filter="События">События</button></div><input class="search" id="book-search" placeholder="⌕ Поиск в книге…"><div class="lore-grid" id="lore-grid"></div><p class="hint">Неизвестные страницы откроются по мере исследования мира.</p></div>
     </section>
 
     <section class="screen scene trials-scene" id="trials">
@@ -48,6 +48,19 @@
     <section class="screen scene deck-scene" id="deck"><div class="scene-shade"></div><div class="section-title"><span class="title-icon">▤</span><div><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1>Общая колода</h1><p>Твои найденные сущности.</p></div></div><div class="glass-panel deck-panel"><input class="search" id="deck-search" placeholder="⌕ Найти карту…"><div class="filters" id="deck-filters"><button class="filter active" data-deck-filter="Все">Все</button><button class="filter" data-deck-filter="Обычные">Обычные</button><button class="filter" data-deck-filter="Особые">Особые</button><button class="filter" data-deck-filter="Всадники">Всадники</button></div><div class="cards-grid" id="cards-grid"></div><div id="card-detail" class="card-detail hidden"></div></div></section>
   </main>
   <nav class="bottom-nav"><button class="nav-item active" data-screen="home"><span>⌂</span><small>Главная</small></button><button class="nav-item" data-screen="deck"><span>▤</span><small>Колода</small></button><button class="nav-item" data-screen="craft"><span>⚗</span><small>Крафт</small></button><button class="nav-item" data-screen="book"><span>♧</span><small>Книга табу</small></button><button class="nav-item" data-screen="trials"><span>⚔</span><small>Испытания</small></button></nav>
+  <div class="card-viewer hidden" id="card-viewer" role="dialog" aria-modal="true" aria-label="Просмотр карты">
+    <button class="viewer-close" id="viewer-close" aria-label="Закрыть просмотр">✕</button>
+    <div class="viewer-card" id="viewer-card"></div>
+    <div class="viewer-info" id="viewer-info"></div>
+  </div>
+  <div class="card-viewer reveal-viewer hidden" id="craft-reveal" role="dialog" aria-modal="true" aria-label="Новая карта">
+    <div class="reveal-sparkles" aria-hidden="true">✦ ✧ ✦</div>
+    <p class="reveal-label">НОВАЯ СУЩНОСТЬ ОБНАРУЖЕНА</p>
+    <div class="viewer-card" id="reveal-card"></div>
+    <div class="viewer-info" id="reveal-info"></div>
+    <button class="primary gold" id="reveal-close">Продолжить</button>
+  </div>
+  <dialog id="taboo-dialog"><form method="dialog"><h2>Добавить в Книгу табу</h2><p>Выбери карту из Общей колоды. Она будет отмечена в Книге табу; пока это демо-перемещение без серверного сохранения.</p><div id="taboo-picker-grid" class="taboo-picker-grid"></div><div class="dialog-actions"><button class="subtle-button" value="cancel">Закрыть</button></div></form></dialog>
   <div class="toast hidden" id="toast" role="status"></div>
   <dialog id="quantity-dialog"><form method="dialog"><h2 id="quantity-title">Добавить карту</h2><p id="quantity-available"></p><label for="quantity-input">Количество</label><input id="quantity-input" type="number" min="1" value="1"><div class="dialog-actions"><button class="subtle-button" value="cancel">Отмена</button><button class="primary blue" id="quantity-confirm" value="confirm">Добавить</button></div></form></dialog>
   <script src="app.js"></script>
