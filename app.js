@@ -4,6 +4,8 @@ const API_BASE = 'https://the-forbidden-api.onrender.com';
 const telegramInitData = tg?.initData || '';
 const serverMode = Boolean(telegramInitData);
 let serverInstances = [];
+let serverReady = false;
+let serverError = '';
 async function api(path, options={}) {
  const headers = {'Content-Type':'application/json'};
  if (telegramInitData) headers['X-Telegram-Init-Data'] = telegramInitData;
@@ -25,6 +27,7 @@ function syncInventoryFromServer() {
 async function refreshServerCollection() {
  const data=await api('/api/me/cards');
  serverInstances=data.cards||[];
+ serverReady = true; serverError = '';
  syncInventoryFromServer();
  const playerName=data.user?.first_name;
  if(playerName) document.querySelector('.player strong').textContent=playerName;
@@ -70,7 +73,7 @@ const lore = [
 ];
 function toast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),2600);}
 function cardMarkup(card, large=false){
- const art = card.art ? `<img class="card-illustration" src="${card.art}" alt="Иллюстрация карты ${card.name}">` : `<div class="generic-card-art" style="--accent:${card.accent||'#9b7d43'}"><span>${card.symbol||'✧'}</span><small>THE FORBIDDEN</small></div>`;
+ const art = card.art ? `<img class="card-illustration" src="${card.art}" alt="Иллюстрация карты ${card.name}" decoding="async">` : `<div class="generic-card-art" style="--accent:${card.accent||'#9b7d43'}"><span>${card.symbol||'✧'}</span><small>THE FORBIDDEN</small></div>`;
  const rarity=card.rarity||card.type||'СУЩНОСТЬ';
  return `<div class="collectible-card card-flippable ${large?'large-card':''} ${card.rarity==='MYTHIC'?'mythic-card':''}" role="button" tabindex="0" aria-label="Перевернуть карту ${card.name}"><div class="card-flip-inner"><div class="card-face card-front"><div class="foil-glare"></div><div class="card-frame">${art}<div class="card-caption"><small>${rarity}</small><b>${card.name}</b><span>${card.desc||'Сущность из забытых королевств.'}</span></div></div></div><div class="card-face card-back"><div class="back-ornament">✧</div><small class="back-brand">THE FORBIDDEN · ${rarity}</small><h3>${card.name}</h3><div class="back-divider"></div><section><b>ЭФФЕКТ</b><p>Текст эффекта пока запечатан…</p></section><section><b>ДЕБАФ</b><p>Неизвестное влияние…</p></section><section><b>ОПИСАНИЕ</b><p>История этой карты ещё не раскрыта.</p></section><section><b>СОЗДАНИЕ</b><p>Источник происхождения пока неизвестен.</p></section><div class="back-footer">ПЕРЕВЕРНИ, ЧТОБЫ ВЕРНУТЬСЯ</div></div></div></div>`;
 }
@@ -139,7 +142,7 @@ document.getElementById('craft-button').addEventListener('click',async()=>{
  const output=inventory.find(c=>c.name===name);if(output)output.qty+=1;else inventory.push({name,qty:1,type:'Особые',symbol:'✧',desc:'Новая созданная карта.',accent:'#b58a43'});
  renderCraft();renderPicker();renderDeck();document.getElementById('craft-note').textContent='Создана карта «'+name+'»! В демо ингредиенты списаны локально.';showCraftReveal(output||{name,qty:1,type:'Особые',symbol:'✧',desc:'Новая созданная карта.',accent:'#b58a43'});toast('✦ Создана карта «'+name+'»!');
 });
-function renderDeck(){const query=(document.getElementById('deck-search').value||'').toLowerCase();const cards=inventory.filter(c=>c.qty>0&&(deckFilter==='Все'||c.type===deckFilter)&&c.name.toLowerCase().includes(query));const grid=document.getElementById('cards-grid');grid.innerHTML=cards.map(c=>`<button class="card ${c.rarity==='MYTHIC'?'mythic-card':''}" data-card="${c.name}"><div class="card-art" style="--accent:${c.accent}">${c.art?`<img src="${c.art}" alt="${c.name}">`:c.symbol}</div><span class="card-name">${c.name}</span><span class="card-count">×${c.qty}</span>${c.rarity==='MYTHIC'?'<span class="rarity-badge">MYTHIC</span>':''}</button>`).join('')||'<div class="empty-state">В этой категории пока нет карт.</div>';grid.querySelectorAll('[data-card]').forEach(b=>{
+function renderDeck(){const query=(document.getElementById('deck-search').value||'').toLowerCase();const cards=inventory.filter(c=>c.qty>0&&(deckFilter==='Все'||c.type===deckFilter)&&c.name.toLowerCase().includes(query));const grid=document.getElementById('cards-grid');grid.innerHTML=cards.map(c=>`<button class="card ${c.rarity==='MYTHIC'?'mythic-card':''}" data-card="${c.name}"><div class="card-art" style="--accent:${c.accent}">${c.art?`<img src="${c.art}" alt="${c.name}" loading="lazy" decoding="async">`:c.symbol}</div><span class="card-name">${c.name}</span><span class="card-count">×${c.qty}</span>${c.rarity==='MYTHIC'?'<span class="rarity-badge">MYTHIC</span>':''}</button>`).join('')||'<div class="empty-state">В этой категории пока нет карт.</div>';grid.querySelectorAll('[data-card]').forEach(b=>{
   b.draggable=true;
   b.addEventListener('dragstart',e=>{e.dataTransfer?.setData('text/card-name',b.dataset.card);if(e.dataTransfer)e.dataTransfer.effectAllowed='move'});
   let touchStart=null, suppressCardClick=false;
@@ -148,7 +151,7 @@ function renderDeck(){const query=(document.getElementById('deck-search').value|
    if(!touchStart)return;const t=e.changedTouches[0],start=touchStart;touchStart=null;
    const moved=Math.hypot(t.clientX-start.x,t.clientY-start.y)>48;
    const target=document.elementFromPoint(t.clientX,t.clientY);
-   if(moved&&target?.closest('#book')){e.preventDefault();suppressCardClick=true;moveCardToTaboo(start.name);setTimeout(()=>{suppressCardClick=false},350)}
+   if(moved&&(target?.closest('#book')||Math.abs(t.clientX-start.x)>70)){e.preventDefault();suppressCardClick=true;moveCardToTaboo(start.name);setTimeout(()=>{suppressCardClick=false},350)}
   },{passive:false});
   b.addEventListener('click',e=>{if(suppressCardClick){e.preventDefault();return}const c=inventory.find(x=>x.name===b.dataset.card);openCardViewer(c)});
  });}
@@ -164,15 +167,15 @@ async function moveCardToTaboo(cardName){
   tabooCards.add(cardName);saveTaboo();renderTabooOwned();renderTabooPicker();toast('Карта добавлена в демо-Книгу табу.');
  }
 }
-const tabooDropZone=document.getElementById('taboo-owned');
-tabooDropZone.addEventListener('dragover',e=>{e.preventDefault();tabooDropZone.classList.add('drop-target')});
-tabooDropZone.addEventListener('dragleave',()=>tabooDropZone.classList.remove('drop-target'));
+const tabooDropZone=document.getElementById('book');
+tabooDropZone.addEventListener('dragover',e=>{if(e.dataTransfer?.types?.includes('text/card-name')){e.preventDefault();tabooDropZone.classList.add('drop-target')}});
+tabooDropZone.addEventListener('dragleave',e=>{if(!tabooDropZone.contains(e.relatedTarget))tabooDropZone.classList.remove('drop-target')});
 tabooDropZone.addEventListener('drop',e=>{e.preventDefault();tabooDropZone.classList.remove('drop-target');const name=e.dataTransfer?.getData('text/card-name');if(name)moveCardToTaboo(name)});
 function saveTaboo(){localStorage.setItem('forbidden-taboo-cards',JSON.stringify([...tabooCards]));}
 function tabooInstances(){return serverMode?serverInstances.filter(i=>i.zone==='taboo'):inventory.filter(c=>tabooCards.has(c.name)).map(c=>({serial:c.name,card_name:c.name,zone:'taboo'}));}
 function renderTabooOwned(){
  const box=document.getElementById('taboo-owned'); const cards=tabooInstances();
- box.innerHTML=cards.length?cards.map(i=>{const c=inventory.find(x=>x.name===i.card_name)||initialInventory.find(x=>x.name===i.card_name)||{name:i.card_name,symbol:'✧'};return '<button class="taboo-owned-card" data-taboo-serial="'+i.serial+'"><span>'+(c.art?'<img src="'+c.art+'" alt="">':c.symbol)+'</span><b>'+c.name+'</b><small>Копия #'+i.serial+' · нажми, чтобы вернуть</small></button>'}).join(''):'<p class="empty-state taboo-empty">Пока нет карт в Книге табу. Добавь конкретную копию из Общей колоды.</p>';
+ box.innerHTML=cards.length?cards.map(i=>{const c=inventory.find(x=>x.name===i.card_name)||initialInventory.find(x=>x.name===i.card_name)||{name:i.card_name,symbol:'✧'};return '<button class="taboo-owned-card" data-taboo-serial="'+i.serial+'"><span>'+(c.art?'<img src="'+c.art+'" alt="" loading="lazy" decoding="async">':c.symbol)+'</span><b>'+c.name+'</b><small>Копия #'+i.serial+' · нажми, чтобы вернуть</small></button>'}).join(''):'<p class="empty-state taboo-empty">Пока нет карт в Книге табу. Добавь конкретную копию из Общей колоды.</p>';
  box.querySelectorAll('[data-taboo-serial]').forEach(b=>b.addEventListener('click',async()=>{const serial=b.dataset.tabooSerial;if(serverMode){try{await api('/api/me/card-zone',{method:'POST',body:JSON.stringify({serial:Number(serial),zone:'deck'})});await refreshServerCollection();toast('Копия возвращена в Общую колоду.')}catch(e){toast(e.message)}}else{tabooCards.delete(serial);saveTaboo();renderTabooOwned();renderTabooPicker();toast('Карта возвращена в демо-колоду.')}}));
 }
 function renderTabooPicker(){
@@ -188,7 +191,7 @@ document.querySelectorAll('[data-trial]').forEach(b=>b.addEventListener('click',
 renderCraft();renderPicker();renderDeck();renderLore();
 if(serverMode){
  document.getElementById('home-note').textContent='Подключаем твою серверную коллекцию…';
- refreshServerCollection().then(()=>{document.getElementById('home-note').textContent='Коллекция синхронизирована с сервером.'}).catch(e=>{document.getElementById('home-note').textContent='Не удалось загрузить коллекцию: '+e.message;toast(e.message)});
+ refreshServerCollection().then(()=>{document.getElementById('home-note').textContent='Коллекция синхронизирована с сервером.'}).catch(e=>{serverError=e.message;document.getElementById('home-note').textContent='Ошибка подключения: '+e.message;document.getElementById('cards-grid').innerHTML='<div class="empty-state">Не удалось загрузить колоду. Проверь подключение Telegram и сервер.</div>';toast(e.message)});
 } else {
  document.getElementById('home-note').textContent='Режим предпросмотра в браузере. Для реальной коллекции открой Mini App в Telegram.';
 }
