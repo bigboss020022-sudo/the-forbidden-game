@@ -142,15 +142,15 @@ document.getElementById('craft-button').addEventListener('click',async()=>{
 function renderDeck(){const query=(document.getElementById('deck-search').value||'').toLowerCase();const cards=inventory.filter(c=>c.qty>0&&(deckFilter==='Все'||c.type===deckFilter)&&c.name.toLowerCase().includes(query));const grid=document.getElementById('cards-grid');grid.innerHTML=cards.map(c=>`<button class="card ${c.rarity==='MYTHIC'?'mythic-card':''}" data-card="${c.name}"><div class="card-art" style="--accent:${c.accent}">${c.art?`<img src="${c.art}" alt="${c.name}">`:c.symbol}</div><span class="card-name">${c.name}</span><span class="card-count">×${c.qty}</span>${c.rarity==='MYTHIC'?'<span class="rarity-badge">MYTHIC</span>':''}</button>`).join('')||'<div class="empty-state">В этой категории пока нет карт.</div>';grid.querySelectorAll('[data-card]').forEach(b=>{
   b.draggable=true;
   b.addEventListener('dragstart',e=>{e.dataTransfer?.setData('text/card-name',b.dataset.card);if(e.dataTransfer)e.dataTransfer.effectAllowed='move'});
-  let touchStart=null;
+  let touchStart=null, suppressCardClick=false;
   b.addEventListener('touchstart',e=>{const t=e.changedTouches[0];touchStart={x:t.clientX,y:t.clientY,name:b.dataset.card}},{passive:true});
   b.addEventListener('touchend',e=>{
    if(!touchStart)return;const t=e.changedTouches[0],start=touchStart;touchStart=null;
    const moved=Math.hypot(t.clientX-start.x,t.clientY-start.y)>48;
    const target=document.elementFromPoint(t.clientX,t.clientY);
-   if(moved&&target?.closest('#book')){e.preventDefault();moveCardToTaboo(start.name)}
+   if(moved&&target?.closest('#book')){e.preventDefault();suppressCardClick=true;moveCardToTaboo(start.name);setTimeout(()=>{suppressCardClick=false},350)}
   },{passive:false});
-  b.addEventListener('click',()=>{const c=inventory.find(x=>x.name===b.dataset.card);openCardViewer(c)});
+  b.addEventListener('click',e=>{if(suppressCardClick){e.preventDefault();return}const c=inventory.find(x=>x.name===b.dataset.card);openCardViewer(c)});
  });}
 document.getElementById('deck-search').addEventListener('input',renderDeck);document.querySelectorAll('[data-deck-filter]').forEach(b=>b.addEventListener('click',()=>{deckFilter=b.dataset.deckFilter;document.querySelectorAll('[data-deck-filter]').forEach(x=>x.classList.toggle('active',x===b));renderDeck()}));
 async function moveCardToTaboo(cardName){
