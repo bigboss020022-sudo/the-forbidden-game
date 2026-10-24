@@ -3,80 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#20251f">
-  <title>The Forbidden</title>
+  <meta name="theme-color" content="#080d1b">
+  <title>The Forbidden — Beta 1.1</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <header class="topbar">
-    <div class="avatar">♜</div>
-    <div class="player"><strong>Путешественник</strong><small>Ур. 1 · Бета</small></div>
-    <div class="resources"><span>🪙 <b>120</b></span><span>💎 <b>25</b></span></div>
+    <div class="sigil">✧</div><div class="player"><strong>Путешественник</strong><small>Ур. 1 · Beta 1.1</small></div>
+    <div class="resources"><span>✦ <b id="gem-count">25</b></span><button class="icon-button" id="settings-button" aria-label="Настройки">⚙</button></div>
   </header>
-
   <main id="app">
-    <section class="screen active" id="home">
-      <div class="hero">
-        <div class="event-chip" onclick="showScreen('trials')"><span class="event-mark">✦</span><span><b>Смерть</b><small>Событие активно</small></span><span>›</span></div>
-        <div class="hero-copy"><p class="eyebrow">ЗАБЫТЫЕ КОРОЛЕВСТВА</p><h1>The Forbidden</h1><p>У каждого открытия есть своя история.</p></div>
-      </div>
-      <button class="primary small-primary" id="get-card">✦ Получить карту</button>
+    <section class="screen active home-scene" id="home">
+      <div class="scene-shade"></div>
+      <div class="event-chip" id="event-chip"><span>✦</span><span><b>Смерть</b><small>Событие активно</small></span><span>›</span></div>
+      <div class="home-copy"><p class="eyebrow">ЗАБЫТЫЕ КОРОЛЕВСТВА</p><h1>THE<br>FORBIDDEN</h1><p>«Мир помнит то,<br>что ты пытаешься забыть…»</p></div>
+      <div class="home-actions"><button class="primary red" id="get-card">✦ Получить карту</button><div class="quick-actions"><button class="ornate-button" data-go="trials">♜ <span>События</span></button><button class="ornate-button" data-go="deck">▤ <span>Мои карты</span></button><button class="ornate-button" data-go="book">♧ <span>Книга табу</span></button></div></div>
       <p class="hint" id="home-note">Твоя история начинается здесь.</p>
     </section>
 
-    <section class="screen" id="deck">
-      <div class="section-head"><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1>Общая колода</h1></div>
-      <input class="search" id="card-search" placeholder="Найти карту...">
-      <div class="filters" id="filters">
-        <button class="filter active" data-filter="Все">Все</button><button class="filter" data-filter="Обычные">Обычные</button><button class="filter" data-filter="Особые">Особые</button><button class="filter" data-filter="Всадники">Всадники</button>
+    <section class="screen scene craft-scene" id="craft">
+      <div class="scene-shade"></div><div class="section-title"><span class="title-icon">✧</span><div><p class="eyebrow">МАГИЧЕСКАЯ МАСТЕРСКАЯ</p><h1>Создание карт</h1><p>Соединяй сущности, открывай новые истории.</p></div></div>
+      <div class="craft-panel glass-panel">
+        <div class="panel-head"><b>✦ Стол крафта</b><button class="subtle-button" id="clear-table">Очистить стол</button></div>
+        <div class="ingredient-scroll" id="ingredient-scroll"><div class="ingredient-row" id="ingredient-row"></div></div>
+        <div class="craft-toolbar"><span id="ingredient-total">Ингредиентов: 0</span><button class="subtle-button" id="open-picker">＋ Добавить карты</button></div>
+        <button class="primary blue" id="craft-button" disabled>✦ Создать карту</button>
+        <p class="hint" id="craft-note">Добавь ингредиенты. Одинаковые карты объединяются в стопку.</p>
       </div>
-      <div class="cards-grid" id="cards-grid"></div>
-      <div class="detail hidden" id="card-detail"></div>
+      <div class="recipe-panel parchment"><div class="panel-head"><b>♜ Известные рецепты</b><button class="subtle-button" id="recipe-info">?</button></div><button class="recipe-row" data-recipe="Королевство"><span>Королевство</span><small>Крестьянин ×20 + Король + Королева + Рыцарь</small><b>›</b></button><button class="recipe-row" data-recipe="Дружба"><span>Дружба</span><small>Авел + Каин</small><b>›</b></button><button class="recipe-row" data-recipe="Одержимость"><span>Одержимость</span><small>Мечта + Безумие</small><b>›</b></button></div>
+      <div class="picker glass-panel hidden" id="picker"><div class="panel-head"><b>Добавить ингредиенты</b><button class="subtle-button" id="close-picker">Готово ✕</button></div><div class="picker-mode"><button class="mode active" data-mode="one">По одной</button><button class="mode" data-mode="quantity">Указать количество</button></div><input class="search" id="picker-search" placeholder="Поиск карты…"><div id="picker-grid" class="picker-grid"></div></div>
     </section>
 
-    <section class="screen" id="craft">
-      <div class="section-head"><p class="eyebrow">МАСТЕРСКАЯ</p><h1>Крафт</h1><p>Соединяй карты. Открывай новые смыслы.</p></div>
-      <div class="alchemy">
-        <div class="rune">✧　ᚷ　✧</div>
-        <p class="table-help">Повторяющиеся карты складываются в одну стопку. Прокручивай стол вбок, чтобы увидеть все ингредиенты.</p>
-        <div class="slots" id="slots"></div>
-        <button class="primary craft-button" id="craft-button" disabled>Крафт</button>
-      </div>
-      <div class="collection-head"><h2>Мои карты</h2><button class="text-button" id="open-picker">＋ Добавить</button></div>
-      <div class="picker hidden" id="picker">
-        <input class="search" id="picker-search" placeholder="Найти карту...">
-        <p class="picker-help">Нажми «+1» для одной карты или укажи количество и нажми «Добавить».</p>
-        <div id="picker-grid" class="picker-grid"></div>
-        <button class="secondary" id="close-picker">Готово</button>
-      </div>
-      <p class="hint" id="craft-note">Выбери компоненты на столе. Это демонстрация: карты не расходуются.</p>
+    <section class="screen scene book-scene" id="book">
+      <div class="scene-shade"></div><div class="section-title"><span class="title-icon">♧</span><div><p class="eyebrow">ЗАПРЕТНЫЙ АРХИВ</p><h1>Книга табу</h1><p>Некоторые знания лучше не открывать…</p></div></div>
+      <div class="book-content glass-panel"><div class="filters" id="book-filters"><button class="filter active" data-book-filter="Все">Все</button><button class="filter" data-book-filter="Сущности">Сущности</button><button class="filter" data-book-filter="Места">Места</button><button class="filter" data-book-filter="События">События</button></div><input class="search" id="book-search" placeholder="⌕ Поиск в книге…"><div class="lore-grid" id="lore-grid"></div><p class="hint">Неизвестные страницы откроются по мере исследования мира.</p></div>
     </section>
 
-    <section class="screen" id="trials">
-      <div class="section-head"><p class="eyebrow">ГЛОБАЛЬНЫЕ СОБЫТИЯ</p><h1>Испытания</h1><p>Четыре пути. Четыре испытания.</p></div>
-      <div class="trial-list">
-        <button class="trial" data-horseman="Смерть"><span>☠</span><b>Смерть</b><small>5 этапов</small><i>›</i></button>
-        <button class="trial" data-horseman="Чума"><span>♧</span><b>Чума</b><small>3 этапа</small><i>›</i></button>
-        <button class="trial" data-horseman="Война"><span>⚔</span><b>Война</b><small>4 этапа</small><i>›</i></button>
-        <button class="trial" data-horseman="Голод"><span>⌁</span><b>Голод</b><small>3 этапа</small><i>›</i></button>
-      </div>
-      <p class="hint" id="trial-note">Выбери Всадника, чтобы посмотреть его испытание.</p>
+    <section class="screen scene trials-scene" id="trials">
+      <div class="scene-shade"></div><div class="section-title"><span class="title-icon">⚔</span><div><p class="eyebrow">ПРОВЕРЬ СВОЮ СИЛУ</p><h1>Испытания</h1><p>Каждое испытание — новый вызов.</p></div></div>
+      <div class="trial-list"><button class="trial gold" data-trial="Обычные испытания"><span>⚔</span><div><b>Обычные испытания</b><small>Проверь свои базовые знания</small></div><i>›</i></button><button class="trial violet" data-trial="Особые испытания"><span>♛</span><div><b>Особые испытания</b><small>Уникальные вызовы</small></div><i>›</i></button><button class="trial crimson" data-trial="Испытания табу"><span>☠</span><div><b>Испытания табу</b><small>Только для избранных</small></div><i>›</i></button></div><div class="trial-detail glass-panel hidden" id="trial-detail"><h2 id="trial-title"></h2><p id="trial-description"></p><button class="primary blue" id="trial-start">Начать испытание</button></div>
     </section>
 
-    <section class="screen" id="book">
-      <div class="section-head"><p class="eyebrow">ЗАПРЕТНЫЙ АРХИВ</p><h1>Книга табу</h1><p>Карты, хранящиеся отдельно от активной колоды.</p></div>
-      <div class="empty-book">♧<h2>Архив пока пуст</h2><p>Перемещённые карты появятся здесь.</p></div>
-    </section>
+    <section class="screen scene deck-scene" id="deck"><div class="scene-shade"></div><div class="section-title"><span class="title-icon">▤</span><div><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1>Общая колода</h1><p>Твои найденные сущности.</p></div></div><div class="glass-panel deck-panel"><input class="search" id="deck-search" placeholder="⌕ Найти карту…"><div class="filters" id="deck-filters"><button class="filter active" data-deck-filter="Все">Все</button><button class="filter" data-deck-filter="Обычные">Обычные</button><button class="filter" data-deck-filter="Особые">Особые</button><button class="filter" data-deck-filter="Всадники">Всадники</button></div><div class="cards-grid" id="cards-grid"></div><div id="card-detail" class="card-detail hidden"></div></div></section>
   </main>
-
-  <nav class="bottom-nav">
-    <button class="nav-item active" data-screen="home"><span>♜</span><small>Главная</small></button>
-    <button class="nav-item" data-screen="deck"><span>▤</span><small>Колода</small></button>
-    <button class="nav-item" data-screen="craft"><span>⚒</span><small>Крафт</small></button>
-    <button class="nav-item" data-screen="trials"><span>⚔</span><small>Испытания</small></button>
-    <button class="nav-item" data-screen="book"><span>▧</span><small>Книга табу</small></button>
-  </nav>
+  <nav class="bottom-nav"><button class="nav-item active" data-screen="home"><span>⌂</span><small>Главная</small></button><button class="nav-item" data-screen="deck"><span>▤</span><small>Колода</small></button><button class="nav-item" data-screen="craft"><span>⚗</span><small>Крафт</small></button><button class="nav-item" data-screen="book"><span>♧</span><small>Книга табу</small></button><button class="nav-item" data-screen="trials"><span>⚔</span><small>Испытания</small></button></nav>
+  <div class="toast hidden" id="toast" role="status"></div>
+  <dialog id="quantity-dialog"><form method="dialog"><h2 id="quantity-title">Добавить карту</h2><p id="quantity-available"></p><label for="quantity-input">Количество</label><input id="quantity-input" type="number" min="1" value="1"><div class="dialog-actions"><button class="subtle-button" value="cancel">Отмена</button><button class="primary blue" id="quantity-confirm" value="confirm">Добавить</button></div></form></dialog>
   <script src="app.js"></script>
 </body>
 </html>
