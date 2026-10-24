@@ -60,7 +60,7 @@
     <div class="viewer-info" id="reveal-info"></div>
     <button class="primary gold" id="reveal-close">Продолжить</button>
   </div>
-  <dialog id="taboo-dialog"><form method="dialog"><h2>Добавить в Книгу табу</h2><p>Выбери карту из Общей колоды. Она будет отмечена в Книге табу; пока это демо-перемещение без серверного сохранения.</p><div id="taboo-picker-grid" class="taboo-picker-grid"></div><div class="dialog-actions"><button class="subtle-button" value="cancel">Закрыть</button></div></form></dialog>
+  <dialog id="taboo-dialog"><form method="dialog"><h2>Добавить в Книгу табу</h2><p>Выбери конкретную копию карты. В Telegram перемещение сохраняется на сервере; в браузере без Telegram доступен только режим предпросмотра.</p><div id="taboo-picker-grid" class="taboo-picker-grid"></div><div class="dialog-actions"><button class="subtle-button" value="cancel">Закрыть</button></div></form></dialog>
   <div class="toast hidden" id="toast" role="status"></div>
   <dialog id="quantity-dialog"><form method="dialog"><h2 id="quantity-title">Добавить карту</h2><p id="quantity-available"></p><label for="quantity-input">Количество</label><input id="quantity-input" type="number" min="1" value="1"><div class="dialog-actions"><button class="subtle-button" value="cancel">Отмена</button><button class="primary blue" id="quantity-confirm" value="confirm">Добавить</button></div></form></dialog>
   <script src="app.js"></script>
