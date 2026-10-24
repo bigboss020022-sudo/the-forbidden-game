@@ -23,7 +23,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 APP_ORIGIN = os.getenv("APP_ORIGIN", "https://bigboss020022-sudo.github.io").rstrip("/")
 
-app = FastAPI(title="The Forbidden API", version="0.2.0")
+app = FastAPI(title="The Forbidden API", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[APP_ORIGIN],
