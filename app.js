@@ -171,6 +171,10 @@ const tabooDropZone=document.getElementById('book');
 tabooDropZone.addEventListener('dragover',e=>{if(e.dataTransfer?.types?.includes('text/card-name')){e.preventDefault();tabooDropZone.classList.add('drop-target')}});
 tabooDropZone.addEventListener('dragleave',e=>{if(!tabooDropZone.contains(e.relatedTarget))tabooDropZone.classList.remove('drop-target')});
 tabooDropZone.addEventListener('drop',e=>{e.preventDefault();tabooDropZone.classList.remove('drop-target');const name=e.dataTransfer?.getData('text/card-name');if(name)moveCardToTaboo(name)});
+const tabooNavDrop=document.querySelector('.nav-item[data-screen="book"]');
+tabooNavDrop.addEventListener('dragover',e=>{if(e.dataTransfer?.types?.includes('text/card-name')){e.preventDefault();tabooNavDrop.classList.add('drop-target')}});
+tabooNavDrop.addEventListener('dragleave',()=>tabooNavDrop.classList.remove('drop-target'));
+tabooNavDrop.addEventListener('drop',e=>{e.preventDefault();tabooNavDrop.classList.remove('drop-target');const name=e.dataTransfer?.getData('text/card-name');if(name)moveCardToTaboo(name)});
 function saveTaboo(){localStorage.setItem('forbidden-taboo-cards',JSON.stringify([...tabooCards]));}
 function tabooInstances(){return serverMode?serverInstances.filter(i=>i.zone==='taboo'):inventory.filter(c=>tabooCards.has(c.name)).map(c=>({serial:c.name,card_name:c.name,zone:'taboo'}));}
 function renderTabooOwned(){
