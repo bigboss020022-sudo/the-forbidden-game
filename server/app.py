@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-Telegram-Init-Data"],
 )
 
-# Demo weights only; rebalance after the full card catalogue is agreed.
+# Demonstration draw weights. "Мечта" is globally capped at ten issued copies.
 CARD_DEFS = [
     ("Крестьянин", "Обычные", 4200, None),
     ("Воин", "Обычные", 2200, None),
@@ -40,8 +40,28 @@ CARD_DEFS = [
     ("Кузнец", "Обычные", 1000, None),
     ("Пекарь", "Обычные", 700, None),
     ("Торговец", "Обычные", 400, None),
+    ("Король", "Особые", 0, None),
+    ("Королева", "Особые", 0, None),
+    ("Рыцарь", "Обычные", 0, None),
+    ("Авел", "Обычные", 0, None),
+    ("Каин", "Обычные", 0, None),
     ("Мечта", "MYTHIC", 100, 10),
+    ("Безумие", "MYTHIC", 0, None),
+    ("Шут", "Особые", 0, None),
+    ("Смерть", "Всадники", 0, None),
+    ("Чума", "Всадники", 0, None),
+    ("Война", "Всадники", 0, None),
+    ("Голод", "Всадники", 0, None),
+    ("Дружба", "Особые", 0, None),
+    ("Одержимость", "Особые", 0, None),
+    ("Королевство", "Особые", 0, None),
 ]
+
+RECIPES = {
+    "Королевство": {"Крестьянин": 20, "Король": 1, "Королева": 1, "Рыцарь": 1},
+    "Дружба": {"Авел": 1, "Каин": 1},
+    "Одержимость": {"Мечта": 1, "Безумие": 1},
+}
 
 
 def get_db():
@@ -82,7 +102,14 @@ def init_db():
             for name, rarity, weight, max_copies in CARD_DEFS:
                 cur.execute(
                     """INSERT INTO card_defs(name, rarity, weight, max_copies)
-                       VALUES (%s, %s, %s, %s) ON CONFLICT (name) DO NOTHING""",
+                       VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (name) DO UPDATE SET
+                         rarity = EXCLUDED.rarity,
+                         weight = EXCLUDED.weight,
+                         max_copies = CASE
+                           WHEN card_defs.name = 'Мечта' THEN 10
+                           ELSE card_defs.max_copies
+                         END""",
                     (name, rarity, weight, max_copies),
                 )
 
@@ -126,6 +153,17 @@ def require_user(x_telegram_init_data: str | None):
 @app.get("/health")
 def health():
     return {"ok": True, "service": "The Forbidden API", "version": app.version}
+
+
+@app.get("/api/catalog")
+def catalog():
+    return {
+        "cards": [
+            {"name": name, "rarity": rarity, "weight": weight, "max_copies": cap}
+            for name, rarity, weight, cap in CARD_DEFS
+        ],
+        "recipes": RECIPES,
+    }
 
 
 @app.get("/api/me/cards")
@@ -208,3 +246,51 @@ def move_card(body: MoveRequest, x_telegram_init_data: str | None = Header(defau
     if row is None:
         raise HTTPException(status_code=404, detail="Card instance not found for this player")
     return {"ok": True, "serial": int(row["serial"]), "zone": row["zone"]}
+
+
+class CraftRequest(BaseModel):
+    ingredients: dict[str, int]
+
+
+@app.post("/api/craft")
+def craft_card(body: CraftRequest, x_telegram_init_data: str | None = Header(default=None)):
+    user = require_user(x_telegram_init_data)
+    ingredients = body.ingredients
+    if not ingredients or any(not isinstance(qty, int) or qty <= 0 for qty in ingredients.values()):
+        raise HTTPException(status_code=400, detail="Ingredients must be positive integer quantities")
+    recipe = next((
+        (name, required) for name, required in RECIPES.items()
+        if ingredients == required
+    ), None)
+    if recipe is None:
+        raise HTTPException(status_code=400, detail="Unknown recipe; no cards were consumed")
+    output_name, required = recipe
+    try:
+        with get_db() as con:
+            # Lock this player's inventory and verify every exact copy before consuming anything.
+            rows = con.execute(
+                """SELECT serial, card_name FROM card_instances
+                   WHERE owner_id = %s AND zone = 'deck'
+                   ORDER BY serial FOR UPDATE""",
+                (user["id"],),
+            ).fetchall()
+            by_name = {}
+            for row in rows:
+                by_name.setdefault(row["card_name"], []).append(int(row["serial"]))
+            if any(len(by_name.get(name, [])) < qty for name, qty in required.items()):
+                raise HTTPException(status_code=409, detail="Not enough ingredients in your deck")
+            consumed = [serial for name, qty in required.items() for serial in by_name[name][:qty]]
+            con.execute(
+                "DELETE FROM card_instances WHERE owner_id = %s AND serial = ANY(%s)",
+                (user["id"], consumed),
+            )
+            new_card = con.execute(
+                """INSERT INTO card_instances(card_name, owner_id, zone, obtained_at)
+                   VALUES (%s, %s, 'deck', %s) RETURNING serial""",
+                (output_name, user["id"], int(time.time())),
+            ).fetchone()
+            return {"ok": True, "card": {"name": output_name, "serial": int(new_card["serial"]), "rarity": "Особые"}}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Craft failed safely; try again")
