@@ -1,5 +1,34 @@
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
+const API_BASE = 'https://the-forbidden-api.onrender.com';
+const telegramInitData = tg?.initData || '';
+const serverMode = Boolean(telegramInitData);
+let serverInstances = [];
+async function api(path, options={}) {
+ const headers = {'Content-Type':'application/json'};
+ if (telegramInitData) headers['X-Telegram-Init-Data'] = telegramInitData;
+ const response = await fetch(API_BASE + path, {...options, headers:{...headers,...(options.headers||{})}});
+ let data={}; try { data=await response.json(); } catch {}
+ if (!response.ok) throw new Error(data.detail || 'Ошибка API: '+response.status);
+ return data;
+}
+function syncInventoryFromServer() {
+ const templates = new Map(initialInventory.map(c=>[c.name,c]));
+ const totals = new Map();
+ serverInstances.forEach(i=>{if(i.zone==='deck') totals.set(i.card_name,(totals.get(i.card_name)||0)+1)});
+ inventory = [...totals.entries()].map(([name,qty])=>{
+  const base=templates.get(name)||{name,type:'Особые',symbol:'✧',desc:'Сущность из забытых королевств.',accent:'#9b7d43'};
+  return {...base,qty,rarity:serverInstances.find(i=>i.card_name===name)?.rarity||base.rarity};
+ });
+ renderDeck(); renderCraft(); renderPicker(); renderTabooOwned();
+}
+async function refreshServerCollection() {
+ const data=await api('/api/me/cards');
+ serverInstances=data.cards||[];
+ syncInventoryFromServer();
+ const playerName=data.user?.first_name;
+ if(playerName) document.querySelector('.player strong').textContent=playerName;
+}
 const initialInventory = [
  {name:'Крестьянин',qty:20,type:'Обычные',symbol:'♟',desc:'Житель королевства.',accent:'#8d7047'},
  {name:'Воин',qty:5,type:'Обычные',symbol:'⚔',desc:'Защитник королевства.',accent:'#5b7188'},
@@ -16,7 +45,7 @@ const initialInventory = [
  {name:'Война',qty:1,type:'Всадники',symbol:'⚔',desc:'Один из четырёх Всадников.',accent:'#9a4549'},
  {name:'Голод',qty:1,type:'Всадники',symbol:'⌁',desc:'Один из четырёх Всадников.',accent:'#947f5a'}
 ];
-let inventory = structuredClone(initialInventory);
+let inventory = serverMode ? [] : structuredClone(initialInventory);
 let selected = new Map();
 let pickerMode = 'one', deckFilter = 'Все', bookFilter = 'Все', toastTimer;
 let tabooCards = new Set(JSON.parse(localStorage.getItem('forbidden-taboo-cards')||'[]'));
@@ -56,7 +85,12 @@ document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.go)));
 document.getElementById('event-chip').addEventListener('click',()=>showScreen('trials'));
 document.getElementById('settings-button').addEventListener('click',()=>toast('Настройки профиля подключим на следующем этапе.'));
-document.getElementById('get-card').addEventListener('click',()=>{const card=inventory.find(c=>c.name==='Безумие');card.qty+=1;document.getElementById('home-note').textContent='Найдена карта «Безумие». Она добавлена в Общую колоду.';renderDeck();showCraftReveal(card);});
+document.getElementById('get-card').addEventListener('click',async()=>{
+ if(serverMode){
+  try { const data=await api('/api/draw',{method:'POST',body:'{}'}); await refreshServerCollection(); const card=inventory.find(c=>c.name===data.card.name); document.getElementById('home-note').textContent='Найдена карта «'+data.card.name+'» · #'+data.card.serial+'.'; if(card)showCraftReveal(card); toast('Карта добавлена в серверную коллекцию.'); }
+  catch(e){toast(e.message||'Не удалось получить карту.');}
+ } else {const card=inventory.find(c=>c.name==='Безумие');card.qty+=1;document.getElementById('home-note').textContent='Демо: найдена карта «Безумие». В Telegram выдача будет серверной.';renderDeck();showCraftReveal(card);}
+});
 function totalSelected(){return [...selected.values()].reduce((sum,v)=>sum+v,0)}
 function renderCraft(){const row=document.getElementById('ingredient-row');row.innerHTML='';for(const [name,qty] of selected){const c=inventory.find(x=>x.name===name);if(!c)continue;const el=document.createElement('div');el.className='ingredient-card';el.innerHTML=`<button class="remove-stack" title="Убрать стопку" aria-label="Убрать ${name}">×</button><div class="card-emblem" style="--accent:${c.accent}">${c.symbol}</div><div class="ingredient-name">${c.name}</div><div class="stack-count">×${qty}</div><div class="stack-controls"><button class="mini-control minus" aria-label="Уменьшить ${name}">−</button><button class="mini-control plus" aria-label="Увеличить ${name}">+</button></div>`;el.querySelector('.remove-stack').addEventListener('click',()=>{selected.delete(name);renderCraft();renderPicker()});el.querySelector('.minus').addEventListener('click',()=>changeStack(name,-1));el.querySelector('.plus').addEventListener('click',()=>changeStack(name,1));row.appendChild(el)}const add=document.createElement('button');add.className='add-card-tile';add.innerHTML='<span>＋</span><small>Добавить карту</small>';add.addEventListener('click',openPicker);row.appendChild(add);document.getElementById('ingredient-total').textContent=`Ингредиентов: ${totalSelected()}`;document.getElementById('craft-button').disabled=selected.size===0;}
 function changeStack(name,delta){const current=selected.get(name)||0;const card=inventory.find(c=>c.name===name);const next=Math.max(0,Math.min(card.qty,current+delta));if(next===0)selected.delete(name);else selected.set(name,next);renderCraft();renderPicker()}
@@ -69,14 +103,39 @@ function openQuantityDialog(card,available){if(available<=0){toast('Нет до�
 document.getElementById('clear-table').addEventListener('click',()=>{selected.clear();renderCraft();renderPicker();document.getElementById('craft-note').textContent='Стол очищен. Карты вернулись в список выбора.'});
 document.querySelectorAll('.recipe-row').forEach(b=>b.addEventListener('click',()=>{const recipe=recipes[b.dataset.recipe];if(!recipe)return;selected.clear();Object.entries(recipe).forEach(([name,qty])=>{const card=inventory.find(c=>c.name===name);if(card)selected.set(name,Math.min(qty,card.qty))});renderCraft();document.getElementById('craft-note').textContent=`На стол добавлены ингредиенты рецепта «${b.dataset.recipe}». Проверь количество перед созданием.`;toast(`Рецепт «${b.dataset.recipe}» загружен на стол.`);document.getElementById('craft').scrollTo?.({top:0,behavior:'smooth'})}));
 document.getElementById('recipe-info').addEventListener('click',()=>toast('Рецепты — подсказки. Для неизвестных комбинаций можно экспериментировать.'));
-document.getElementById('craft-button').addEventListener('click',()=>{const found=Object.entries(recipes).find(([name,recipe])=>Object.entries(recipe).every(([card,qty])=>(selected.get(card)||0)>=qty)&&totalSelected()===Object.values(recipe).reduce((a,b)=>a+b,0));if(!found){document.getElementById('craft-note').textContent='Известный рецепт не найден. Ингредиенты сохранены — можешь изменить комбинацию.';toast('Комбинация пока не распознана. Карты не потрачены.');return}const [name,recipe]=found;const missing=Object.entries(recipe).filter(([card,qty])=>(selected.get(card)||0)<qty);if(missing.length){toast('Не хватает ингредиентов для рецепта.');return}for(const [card,qty] of Object.entries(recipe)){const left=(selected.get(card)||0)-qty;if(left>0)selected.set(card,left);else selected.delete(card)}const output=inventory.find(c=>c.name===name);if(output)output.qty+=1;else inventory.push({name,qty:1,type:'Особые',symbol:'✧',desc:'Новая созданная карта.',accent:'#b58a43'});renderCraft();renderPicker();renderDeck();document.getElementById('craft-note').textContent=`Создана карта «${name}»! В демо ингредиенты списаны согласно рецепту.`;showCraftReveal(output||{name,qty:1,type:'Особые',symbol:'✧',desc:'Новая созданная карта.',accent:'#b58a43'});toast(`✦ Создана карта «${name}»!`)});
+document.getElementById('craft-button').addEventListener('click',async()=>{
+ const found=Object.entries(recipes).find(([name,recipe])=>Object.entries(recipe).every(([card,qty])=>(selected.get(card)||0)>=qty)&&totalSelected()===Object.values(recipe).reduce((a,b)=>a+b,0));
+ if(!found){document.getElementById('craft-note').textContent='Известный рецепт не найден. Ингредиенты сохранены — можешь изменить комбинацию.';toast('Комбинация пока не распознана. Карты не потрачены.');return}
+ const [name,recipe]=found;
+ if(Object.entries(recipe).some(([card,qty])=>(selected.get(card)||0)<qty)){toast('Не хватает ингредиентов для рецепта.');return}
+ if(serverMode){try{const data=await api('/api/craft',{method:'POST',body:JSON.stringify({ingredients:recipe})});selected.clear();await refreshServerCollection();renderCraft();renderPicker();document.getElementById('craft-note').textContent='Создана карта «'+data.card.name+'». Ингредиенты списаны сервером.';const output=inventory.find(c=>c.name===data.card.name)||{name:data.card.name,qty:1,type:'Особые',symbol:'✧',desc:'Создана по рецепту.',accent:'#b58a43'};showCraftReveal(output);toast('✦ Создана карта «'+data.card.name+'»!')}catch(e){toast(e.message||'Крафт не удался.')}return}
+ for(const [card,qty] of Object.entries(recipe)){const left=(selected.get(card)||0)-qty;if(left>0)selected.set(card,left);else selected.delete(card)}
+ const output=inventory.find(c=>c.name===name);if(output)output.qty+=1;else inventory.push({name,qty:1,type:'Особые',symbol:'✧',desc:'Новая созданная карта.',accent:'#b58a43'});
+ renderCraft();renderPicker();renderDeck();document.getElementById('craft-note').textContent='Создана карта «'+name+'»! В демо ингредиенты списаны локально.';showCraftReveal(output||{name,qty:1,type:'Особые',symbol:'✧',desc:'Новая созданная карта.',accent:'#b58a43'});toast('✦ Создана карта «'+name+'»!');
+});
 function renderDeck(){const query=(document.getElementById('deck-search').value||'').toLowerCase();const cards=inventory.filter(c=>(deckFilter==='Все'||c.type===deckFilter)&&c.name.toLowerCase().includes(query));const grid=document.getElementById('cards-grid');grid.innerHTML=cards.map(c=>`<button class="card ${c.rarity==='MYTHIC'?'mythic-card':''}" data-card="${c.name}"><div class="card-art" style="--accent:${c.accent}">${c.art?`<img src="${c.art}" alt="${c.name}">`:c.symbol}</div><span class="card-name">${c.name}</span><span class="card-count">×${c.qty}</span>${c.rarity==='MYTHIC'?'<span class="rarity-badge">MYTHIC</span>':''}</button>`).join('')||'<div class="empty-state">В этой категории пока нет карт.</div>';grid.querySelectorAll('[data-card]').forEach(b=>b.addEventListener('click',()=>{const c=inventory.find(x=>x.name===b.dataset.card);openCardViewer(c)}));}
 document.getElementById('deck-search').addEventListener('input',renderDeck);document.querySelectorAll('[data-deck-filter]').forEach(b=>b.addEventListener('click',()=>{deckFilter=b.dataset.deckFilter;document.querySelectorAll('[data-deck-filter]').forEach(x=>x.classList.toggle('active',x===b));renderDeck()}));
 function saveTaboo(){localStorage.setItem('forbidden-taboo-cards',JSON.stringify([...tabooCards]));}
-function renderTabooOwned(){const box=document.getElementById('taboo-owned');const cards=inventory.filter(c=>tabooCards.has(c.name));box.innerHTML=cards.length?cards.map(c=>`<button class="taboo-owned-card" data-taboo-card="${c.name}"><span>${c.art?`<img src="${c.art}" alt="">`:c.symbol}</span><b>${c.name}</b><small>В Книге табу · нажми, чтобы вернуть</small></button>`).join(''):'<p class="empty-state taboo-empty">Пока нет карт. Нажми «Добавить карту», чтобы выбрать их из Общей колоды.</p>';box.querySelectorAll('[data-taboo-card]').forEach(b=>b.addEventListener('click',()=>{const name=b.dataset.tabooCard;tabooCards.delete(name);saveTaboo();renderTabooOwned();renderTabooPicker();toast(`«${name}» возвращена в Общую колоду.`)}));}
-function renderTabooPicker(){const grid=document.getElementById('taboo-picker-grid');grid.innerHTML=inventory.filter(c=>c.qty>0).map(c=>`<button type="button" class="taboo-pick-card ${tabooCards.has(c.name)?'selected':''}" data-taboo-pick="${c.name}"><span>${c.art?`<img src="${c.art}" alt="">`:c.symbol}</span><b>${c.name}</b><small>В колоде ×${c.qty}</small><em>${tabooCards.has(c.name)?'✓ В Книге':'＋ Добавить'}</em></button>`).join('');grid.querySelectorAll('[data-taboo-pick]').forEach(b=>b.addEventListener('click',()=>{const name=b.dataset.tabooPick;if(tabooCards.has(name)){tabooCards.delete(name);toast(`«${name}» убрана из Книги табу.`)}else{tabooCards.add(name);toast(`«${name}» добавлена в Книгу табу.`)}saveTaboo();renderTabooPicker();renderTabooOwned()}));}
+function tabooInstances(){return serverMode?serverInstances.filter(i=>i.zone==='taboo'):inventory.filter(c=>tabooCards.has(c.name)).map(c=>({serial:c.name,card_name:c.name,zone:'taboo'}));}
+function renderTabooOwned(){
+ const box=document.getElementById('taboo-owned'); const cards=tabooInstances();
+ box.innerHTML=cards.length?cards.map(i=>{const c=inventory.find(x=>x.name===i.card_name)||initialInventory.find(x=>x.name===i.card_name)||{name:i.card_name,symbol:'✧'};return '<button class="taboo-owned-card" data-taboo-serial="'+i.serial+'"><span>'+(c.art?'<img src="'+c.art+'" alt="">':c.symbol)+'</span><b>'+c.name+'</b><small>Копия #'+i.serial+' · нажми, чтобы вернуть</small></button>'}).join(''):'<p class="empty-state taboo-empty">Пока нет карт в Книге табу. Добавь конкретную копию из Общей колоды.</p>';
+ box.querySelectorAll('[data-taboo-serial]').forEach(b=>b.addEventListener('click',async()=>{const serial=b.dataset.tabooSerial;if(serverMode){try{await api('/api/me/card-zone',{method:'POST',body:JSON.stringify({serial:Number(serial),zone:'deck'})});await refreshServerCollection();toast('Копия возвращена в Общую колоду.')}catch(e){toast(e.message)}}else{tabooCards.delete(serial);saveTaboo();renderTabooOwned();renderTabooPicker();toast('Карта возвращена в демо-колоду.')}}));
+}
+function renderTabooPicker(){
+ const grid=document.getElementById('taboo-picker-grid');
+ if(serverMode){const cards=serverInstances.filter(i=>i.zone==='deck');grid.innerHTML=cards.map(i=>{const c=inventory.find(x=>x.name===i.card_name)||initialInventory.find(x=>x.name===i.card_name)||{name:i.card_name,symbol:'✧'};return '<button type="button" class="taboo-pick-card" data-taboo-pick="'+i.serial+'"><span>'+(c.art?'<img src="'+c.art+'" alt="">':c.symbol)+'</span><b>'+c.name+'</b><small>Копия #'+i.serial+'</small><em>＋ В Книгу табу</em></button>'}).join('')||'<p class="empty-state">В Общей колоде нет доступных копий.</p>';grid.querySelectorAll('[data-taboo-pick]').forEach(b=>b.addEventListener('click',async()=>{try{await api('/api/me/card-zone',{method:'POST',body:JSON.stringify({serial:Number(b.dataset.tabooPick),zone:'taboo'})});await refreshServerCollection();renderTabooPicker();toast('Конкретная копия перемещена в Книгу табу.')}catch(e){toast(e.message)}}));return}
+ grid.innerHTML=inventory.filter(c=>c.qty>0).map(c=>'<button type="button" class="taboo-pick-card '+(tabooCards.has(c.name)?'selected':'')+'" data-taboo-pick="'+c.name+'"><span>'+(c.art?'<img src="'+c.art+'" alt="">':c.symbol)+'</span><b>'+c.name+'</b><small>В демо-колоде ×'+c.qty+'</small><em>'+(tabooCards.has(c.name)?'✓ В Книге':'＋ Добавить')+'</em></button>').join('');
+ grid.querySelectorAll('[data-taboo-pick]').forEach(b=>b.addEventListener('click',()=>{const name=b.dataset.tabooPick;if(tabooCards.has(name))tabooCards.delete(name);else tabooCards.add(name);saveTaboo();renderTabooPicker();renderTabooOwned()}));
+}
 document.getElementById('open-taboo-picker').addEventListener('click',()=>{renderTabooPicker();document.getElementById('taboo-dialog').showModal()});
 function renderLore(){const query=document.getElementById('book-search').value.trim().toLowerCase();const list=lore.filter(x=>(bookFilter==='Все'||x.type===bookFilter)&&x.name.toLowerCase().includes(query));const grid=document.getElementById('lore-grid');grid.innerHTML=list.map(x=>`<button class="lore-card ${x.open?'':'locked'}" data-lore="${x.name}"><div class="lore-art" style="--accent:${x.accent}">${x.open?x.symbol:'🔒'}</div><b>${x.name}</b><small>${x.open?'Открыто':'???'}</small></button>`).join('')||'<div class="empty-state">В этой категории записей нет.</div>';grid.querySelectorAll('[data-lore]').forEach(b=>b.addEventListener('click',()=>{const entry=lore.find(x=>x.name===b.dataset.lore);toast(entry.open?`${entry.name}: ${entry.desc}`:'Эта страница пока запечатана.')}));renderTabooOwned();}
 document.getElementById('book-search').addEventListener('input',renderLore);document.querySelectorAll('[data-book-filter]').forEach(b=>b.addEventListener('click',()=>{bookFilter=b.dataset.bookFilter;document.querySelectorAll('[data-book-filter]').forEach(x=>x.classList.toggle('active',x===b));renderLore()}));
 document.querySelectorAll('[data-trial]').forEach(b=>b.addEventListener('click',()=>{const title=b.dataset.trial;document.getElementById('trial-title').textContent=title;document.getElementById('trial-description').textContent=title==='Обычные испытания'?'Проверь базовые знания мира The Forbidden.':title==='Особые испытания'?'Уникальные испытания откроются по мере исследования колоды.':'Испытания табу предназначены для тех, кто открыл запретные страницы.';document.getElementById('trial-detail').classList.remove('hidden');document.getElementById('trial-detail').scrollIntoView({behavior:'smooth',block:'nearest'})}));document.getElementById('trial-start').addEventListener('click',()=>toast('Система этапов испытаний будет подключена отдельно.'));
 renderCraft();renderPicker();renderDeck();renderLore();
+if(serverMode){
+ document.getElementById('home-note').textContent='Подключаем твою серверную коллекцию…';
+ refreshServerCollection().then(()=>{document.getElementById('home-note').textContent='Коллекция синхронизирована с сервером.'}).catch(e=>{document.getElementById('home-note').textContent='Не удалось загрузить коллекцию: '+e.message;toast(e.message)});
+} else {
+ document.getElementById('home-note').textContent='Режим предпросмотра в браузере. Для реальной коллекции открой Mini App в Telegram.';
+}
