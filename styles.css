@@ -21,3 +21,26 @@
 body.modal-open{overflow:hidden}
 @media(min-width:720px){.viewer-card{width:min(38vw,360px)}.taboo-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.home-copy{margin-bottom:8px}}
 @media(max-width:420px){.viewer-card{width:min(82vw,320px)}.viewer-info{padding-top:10px}.viewer-info h2{font-size:19px}.card-caption span{font-size:9px}.taboo-toolbar{align-items:flex-start;flex-direction:column}.home-copy h1{font-size:34px}}
+
+
+/* Beta 2: reversible cards and drag-to-taboo */
+.card-flippable{cursor:pointer;touch-action:pan-y}
+.card-flip-inner{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .62s cubic-bezier(.2,.75,.2,1)}
+.card-flippable.is-flipped .card-flip-inner{transform:rotateY(180deg)}
+.card-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden;border-radius:12px}
+.card-front{transform:rotateY(0deg)}
+.card-back{transform:rotateY(180deg);padding:18px 15px 14px;display:flex;flex-direction:column;gap:8px;text-align:center;color:#f7e5b8;background:radial-gradient(circle at 50% 0%,#384466 0,#11192c 46%,#070a13 100%);border:1px solid #f0cc78;box-shadow:inset 0 0 0 4px #0b1020,inset 0 0 0 5px #b28a48}
+.card-back:before,.card-back:after{content:"✧  ✦  ✧";letter-spacing:8px;color:#d6ad5d;font-size:10px}
+.back-ornament{font-size:30px;line-height:1;color:#ffdfa0;text-shadow:0 0 18px #e4b958}
+.back-brand{font-size:7px;letter-spacing:2px;color:#e4c47f}
+.card-back h3{font:700 19px 'Cinzel',serif;margin:0;color:#fff0c9}
+.back-divider{height:1px;background:linear-gradient(90deg,transparent,#e2bb6a,transparent);margin:0 8px}
+.card-back section{border:1px solid #b18a4a66;background:#050a15aa;border-radius:7px;padding:6px 7px;text-align:left}
+.card-back section b{font-size:8px;letter-spacing:1.5px;color:#f4d184}
+.card-back section p{font-size:9px;line-height:1.3;color:#cfc3a8;margin:4px 0 0}
+.back-footer{margin-top:auto;font-size:7px;letter-spacing:1px;color:#bda36f}
+.flip-hint{font-size:10px!important;color:#dfc58c!important;opacity:.85}
+#taboo-owned.drop-target{outline:2px dashed #ffda87;outline-offset:4px;background:#3b2c1740;border-radius:10px}
+.card[data-card]{cursor:grab}.card[data-card]:active{cursor:grabbing}
+@media(max-width:420px){.card-back{padding:13px 10px;gap:6px}.card-back h3{font-size:16px}.card-back section p{font-size:8px}.back-ornament{font-size:25px}}
+@media(prefers-reduced-motion:reduce){.card-flip-inner{transition:none}}
