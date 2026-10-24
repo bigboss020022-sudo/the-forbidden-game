@@ -99,6 +99,12 @@ def init_db():
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS idx_instances_owner ON card_instances(owner_id, zone)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_instances_card ON card_instances(card_name)")
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS starter_grants (
+                    owner_id TEXT PRIMARY KEY,
+                    granted_at BIGINT NOT NULL
+                )
+            """)
             for name, rarity, weight, max_copies in CARD_DEFS:
                 cur.execute(
                     """INSERT INTO card_defs(name, rarity, weight, max_copies)
@@ -175,10 +181,43 @@ def catalog():
     }
 
 
+def grant_beta_starter_cards(con, owner_id: str):
+    """Grant one Madness and one random positive-weight card once per player."""
+    granted = con.execute(
+        """INSERT INTO starter_grants(owner_id, granted_at) VALUES (%s, %s)
+           ON CONFLICT (owner_id) DO NOTHING RETURNING owner_id""",
+        (owner_id, int(time.time())),
+    ).fetchone()
+    if not granted:
+        return
+
+    starter_names = ["Безумие"]
+    candidates = con.execute(
+        """SELECT name FROM card_defs
+           WHERE name <> 'Безумие' AND weight > 0
+             AND (max_copies IS NULL OR issued_copies < max_copies)"""
+    ).fetchall()
+    if candidates:
+        starter_names.append(random.choice(candidates)["name"])
+
+    for card_name in starter_names:
+        updated = con.execute(
+            "UPDATE card_defs SET issued_copies = issued_copies + 1 WHERE name = %s RETURNING name",
+            (card_name,),
+        ).fetchone()
+        if updated:
+            con.execute(
+                """INSERT INTO card_instances(card_name, owner_id, zone, obtained_at)
+                   VALUES (%s, %s, 'deck', %s)""",
+                (card_name, owner_id, int(time.time())),
+            )
+
+
 @app.get("/api/me/cards")
 def my_cards(x_telegram_init_data: str | None = Header(default=None)):
     user = require_user(x_telegram_init_data)
     with get_db() as con:
+        grant_beta_starter_cards(con, user["id"])
         rows = con.execute(
             """SELECT i.serial, i.card_name, i.zone, i.obtained_at, d.rarity, d.max_copies
                FROM card_instances i JOIN card_defs d ON d.name = i.card_name

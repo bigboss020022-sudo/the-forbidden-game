@@ -77,6 +77,54 @@ function cardMarkup(card, large=false){
  const rarity=card.rarity||card.type||'СУЩНОСТЬ';
  return `<div class="collectible-card card-flippable ${large?'large-card':''} ${card.rarity==='MYTHIC'?'mythic-card':''}" role="button" tabindex="0" aria-label="Перевернуть карту ${card.name}"><div class="card-flip-inner"><div class="card-face card-front"><div class="foil-glare"></div><div class="card-frame">${art}<div class="card-caption"><small>${rarity}</small><b>${card.name}</b><span>${card.desc||'Сущность из забытых королевств.'}</span></div></div></div><div class="card-face card-back"><div class="back-ornament">✧</div><small class="back-brand">THE FORBIDDEN · ${rarity}</small><h3>${card.name}</h3><div class="back-divider"></div><section><b>ЭФФЕКТ</b><p>Текст эффекта пока запечатан…</p></section><section><b>ДЕБАФ</b><p>Неизвестное влияние…</p></section><section><b>ОПИСАНИЕ</b><p>История этой карты ещё не раскрыта.</p></section><section><b>СОЗДАНИЕ</b><p>Источник происхождения пока неизвестен.</p></section><div class="back-footer">ПЕРЕВЕРНИ, ЧТОБЫ ВЕРНУТЬСЯ</div></div></div></div>`;
 }
+let motionRoot = null;
+let orientationHandler = null;
+function applyCardTilt(el, x, y) {
+ const tx = Math.max(-14, Math.min(14, x));
+ const ty = Math.max(-14, Math.min(14, y));
+ el.style.setProperty('--tilt-x', tx.toFixed(2) + 'deg');
+ el.style.setProperty('--tilt-y', (-ty).toFixed(2) + 'deg');
+ el.style.setProperty('--glare-x', (tx * 2.1).toFixed(1) + '%');
+ el.style.setProperty('--glare-y', (ty * 2.1).toFixed(1) + '%');
+}
+function startCardMotion(root) {
+ stopCardMotion();
+ motionRoot = root;
+ root.querySelectorAll('.collectible-card').forEach(el => {
+  el.classList.add('card-motion');
+  el.addEventListener('pointermove', e => {
+   if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+   const r = el.getBoundingClientRect();
+   applyCardTilt(el, ((e.clientX-r.left)/r.width-.5)*24, ((e.clientY-r.top)/r.height-.5)*24);
+  });
+  el.addEventListener('pointerleave', () => applyCardTilt(el, 0, 0));
+ });
+ const attachOrientation = () => {
+  if (typeof DeviceOrientationEvent === 'undefined') return;
+  orientationHandler = e => {
+   if (!motionRoot || e.beta == null || e.gamma == null) return;
+   const x = Math.max(-14, Math.min(14, e.gamma / 45 * 14));
+   const y = Math.max(-14, Math.min(14, (e.beta - 45) / 45 * 14));
+   motionRoot.querySelectorAll('.collectible-card').forEach(el => applyCardTilt(el, x, y));
+  };
+  window.addEventListener('deviceorientation', orientationHandler, {passive:true});
+ };
+ try {
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+   DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted' && motionRoot === root) attachOrientation(); }).catch(()=>{});
+  } else attachOrientation();
+ } catch {}
+}
+function stopCardMotion() {
+ if (orientationHandler) window.removeEventListener('deviceorientation', orientationHandler);
+ orientationHandler = null;
+ if (motionRoot) motionRoot.querySelectorAll('.collectible-card').forEach(el => {
+  el.classList.remove('card-motion');
+  el.style.removeProperty('--tilt-x'); el.style.removeProperty('--tilt-y');
+  el.style.removeProperty('--glare-x'); el.style.removeProperty('--glare-y');
+ });
+ motionRoot = null;
+}
 function flipCard(el){el.classList.toggle('is-flipped');}
 function bindCardFlip(root){
  root.querySelectorAll('.card-flippable').forEach(el=>{
@@ -89,18 +137,18 @@ function openCardViewer(card){
  document.getElementById('viewer-card').innerHTML=cardMarkup(card,true);
  bindCardFlip(document.getElementById('viewer-card'));
  document.getElementById('viewer-info').innerHTML=`<h2>${card.name}</h2><p>${card.desc||''}</p><small>В общей колоде: ×${card.qty}</small><p class="flip-hint">Нажми на карту или проведи по ней влево/вправо, чтобы посмотреть обратную сторону.</p>${card.rarity==='MYTHIC'?'<p class="mythic-note">✦ MYTHIC · Радужная фольга</p>':''}`;
- viewer.classList.remove('hidden'); document.body.classList.add('modal-open');
+ viewer.classList.remove('hidden'); document.body.classList.add('modal-open'); startCardMotion(document.getElementById('viewer-card'));
 }
 let viewerTouchX=null;
 document.getElementById('viewer-card').addEventListener('touchstart',e=>{viewerTouchX=e.changedTouches[0].clientX},{passive:true});
 document.getElementById('viewer-card').addEventListener('touchend',e=>{if(viewerTouchX===null)return;const dx=e.changedTouches[0].clientX-viewerTouchX;viewerTouchX=null;if(Math.abs(dx)>35){const card=document.querySelector('#viewer-card .card-flippable');if(card)card.classList.toggle('is-flipped')}},{passive:true});
 document.getElementById('viewer-card').addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')viewerTouchX=e.clientX});
 document.getElementById('viewer-card').addEventListener('pointerup',e=>{if(e.pointerType!=='mouse'||viewerTouchX===null)return;const dx=e.clientX-viewerTouchX;viewerTouchX=null;if(Math.abs(dx)>45){const card=document.querySelector('#viewer-card .card-flippable');if(card)card.classList.toggle('is-flipped')}});
-function closeViewer(){document.getElementById('card-viewer').classList.add('hidden');document.body.classList.remove('modal-open');}
+function closeViewer(){stopCardMotion();document.getElementById('card-viewer').classList.add('hidden');document.body.classList.remove('modal-open');}
 document.getElementById('viewer-close').addEventListener('click',closeViewer);
 document.getElementById('card-viewer').addEventListener('click',e=>{if(e.target.id==='card-viewer')closeViewer()});
-function showCraftReveal(card){const viewer=document.getElementById('craft-reveal');document.getElementById('reveal-card').innerHTML=cardMarkup(card,true);bindCardFlip(document.getElementById('reveal-card'));document.getElementById('reveal-info').innerHTML=`<h2>${card.name}</h2><p>${card.desc||'Новая сущность добавлена в Общую колоду.'}</p><small>Карта добавлена в коллекцию</small><p class="flip-hint">Нажми на карту, чтобы посмотреть рубашку.</p>`;viewer.classList.remove('hidden');document.body.classList.add('modal-open');}
-document.getElementById('reveal-close').addEventListener('click',()=>{document.getElementById('craft-reveal').classList.add('hidden');document.body.classList.remove('modal-open')});
+function showCraftReveal(card){const viewer=document.getElementById('craft-reveal');document.getElementById('reveal-card').innerHTML=cardMarkup(card,true);bindCardFlip(document.getElementById('reveal-card'));document.getElementById('reveal-info').innerHTML=`<h2>${card.name}</h2><p>${card.desc||'Новая сущность добавлена в Общую колоду.'}</p><small>Карта добавлена в коллекцию</small><p class="flip-hint">Нажми на карту, чтобы посмотреть рубашку.</p>`;viewer.classList.remove('hidden');document.body.classList.add('modal-open');startCardMotion(document.getElementById('reveal-card'));}
+document.getElementById('reveal-close').addEventListener('click',()=>{stopCardMotion();document.getElementById('craft-reveal').classList.add('hidden');document.body.classList.remove('modal-open')});
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));if(id!=='craft')document.getElementById('picker').classList.add('hidden');}
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.screen)));
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>showScreen(b.dataset.go)));

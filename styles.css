@@ -53,3 +53,8 @@ body.modal-open{overflow:hidden}
 .trials-scene.active{background-image:url('assets/trials-bg.png')}
 #book.drop-target{outline:2px dashed #ffda87;outline-offset:-5px;background-color:#3b2c1740}
 @media(prefers-reduced-motion:reduce){.screen.active{animation:none}}
+
+/* Beta 2.2: tilt-responsive foil, active only while a card modal is open. */
+.collectible-card.card-motion{transform:perspective(900px) rotateX(var(--tilt-y,0deg)) rotateY(var(--tilt-x,0deg));transition:transform .12s ease-out;will-change:transform}
+.collectible-card.card-motion .foil-glare{animation:none;transform:translate(var(--glare-x,0%),var(--glare-y,0%)) rotate(12deg);transition:transform .08s linear}
+@media(prefers-reduced-motion:reduce){.collectible-card.card-motion{transition:none}.collectible-card.card-motion .foil-glare{transition:none}}
