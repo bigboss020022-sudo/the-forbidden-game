@@ -80,12 +80,11 @@ function cardMarkup(card, large=false){
 let motionRoot = null;
 let orientationHandler = null;
 function applyCardTilt(el, x, y) {
- const tx = Math.max(-14, Math.min(14, x));
- const ty = Math.max(-14, Math.min(14, y));
- el.style.setProperty('--tilt-x', tx.toFixed(2) + 'deg');
- el.style.setProperty('--tilt-y', (-ty).toFixed(2) + 'deg');
- el.style.setProperty('--glare-x', (tx * 2.1).toFixed(1) + '%');
- el.style.setProperty('--glare-y', (ty * 2.1).toFixed(1) + '%');
+ // Keep the physical card perfectly still; only move the holographic light.
+ const gx = Math.max(-34, Math.min(34, x * 2.4));
+ const gy = Math.max(-34, Math.min(34, y * 2.4));
+ el.style.setProperty('--glare-x', gx.toFixed(1) + '%');
+ el.style.setProperty('--glare-y', gy.toFixed(1) + '%');
 }
 function startCardMotion(root) {
  stopCardMotion();
