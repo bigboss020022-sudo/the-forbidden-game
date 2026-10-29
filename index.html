@@ -16,7 +16,7 @@
   <main id="app">
     <section class="screen active home-scene" id="home">
       <div class="scene-shade"></div>
-      <div class="event-chip" id="event-chip"><span>✦</span><span><b>Смерть</b><small>Событие активно</small></span><span>›</span></div>
+      <div class="home-top-actions"><div class="event-chip" id="event-chip"><span>✦</span><span><b>Смерть</b><small>Событие активно</small></span><span>›</span></div><button class="catalog-button" id="open-catalog" aria-label="Все карты" title="Все карты"><span aria-hidden="true">▤</span><small>Все карты</small></button></div>
       <div class="home-copy"><p class="eyebrow">ЗАБЫТЫЕ КОРОЛЕВСТВА</p><h1>THE<br>FORBIDDEN</h1><p>«Мир помнит то,<br>что ты пытаешься забыть…»</p></div>
       <div class="home-actions"><button class="primary red" id="get-card">✦ Получить карту</button></div>
       <p class="hint" id="home-note">Твоя история начинается здесь.</p>
@@ -45,8 +45,19 @@
       <div class="trial-list"><button class="trial gold" data-trial="Обычные испытания"><span>⚔</span><div><b>Обычные испытания</b><small>Проверь свои базовые знания</small></div><i>›</i></button><button class="trial violet" data-trial="Особые испытания"><span>♛</span><div><b>Особые испытания</b><small>Уникальные вызовы</small></div><i>›</i></button><button class="trial crimson" data-trial="Испытания табу"><span>☠</span><div><b>Испытания табу</b><small>Только для избранных</small></div><i>›</i></button></div><div class="trial-detail glass-panel hidden" id="trial-detail"><h2 id="trial-title"></h2><p id="trial-description"></p><button class="primary blue" id="trial-start">Начать испытание</button></div>
     </section>
 
-    <section class="screen scene deck-scene" id="deck"><div class="scene-shade"></div><div class="section-title"><span class="title-icon">▤</span><div><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1>Общая колода</h1><p>Твои найденные сущности.</p></div></div><div class="glass-panel deck-panel"><input class="search" id="deck-search" placeholder="⌕ Найти карту…"><div class="filters" id="deck-filters"><button class="filter active" data-deck-filter="Все">Все</button><button class="filter" data-deck-filter="Обычные">Обычные</button><button class="filter" data-deck-filter="Особые">Особые</button><button class="filter" data-deck-filter="Всадники">Всадники</button></div><div class="cards-grid" id="cards-grid"></div><div id="card-detail" class="card-detail hidden"></div></div></section>
+    <section class="screen scene deck-scene" id="deck"><div class="scene-shade"></div><p class="beta-test-banner hidden" id="beta-test-banner" role="status">БЕТА-ТЕСТ · тестовая колода работает только в этом браузере; серверные карты не меняются. <a href="./">Выйти из теста</a></p><div class="section-title"><span class="title-icon">▤</span><div><p class="eyebrow">КОЛЛЕКЦИЯ</p><h1>Общая колода</h1><p>Твои найденные сущности.</p></div></div><div class="glass-panel deck-panel"><input class="search" id="deck-search" placeholder="⌕ Найти карту…"><div class="filters" id="deck-filters"><button class="filter active" data-deck-filter="Все">Все</button><button class="filter" data-deck-filter="Обычные">Обычные</button><button class="filter" data-deck-filter="Особые">Особые</button><button class="filter" data-deck-filter="Всадники">Всадники</button></div><div class="cards-grid" id="cards-grid"></div><div id="card-detail" class="card-detail hidden"></div></div></section>
   </main>
+  <section class="catalog-screen hidden" id="catalog-screen" aria-label="Каталог всех карт">
+    <div class="catalog-panel">
+      <header class="catalog-header"><div><p class="eyebrow">АРХИВ КОЛОДЫ</p><h1>Все карты</h1><p id="catalog-count" class="catalog-count-strip">Полная коллекция мира</p></div><button class="icon-button" id="close-catalog" aria-label="Закрыть каталог">✕</button></header>
+      <input class="search" id="catalog-search" placeholder="⌕ Найти карту…" autocomplete="off">
+      <div class="filters" id="catalog-filters"><button class="filter active" data-catalog-filter="Все">Все</button><button class="filter" data-catalog-filter="Обычные">Обычные</button><button class="filter" data-catalog-filter="Особые">Особые</button><button class="filter" data-catalog-filter="Всадники">Всадники</button></div>
+      <div class="catalog-grid" id="catalog-grid"></div>
+    </div>
+  </section>
+  <div class="card-processing hidden" id="card-processing" role="status" aria-live="polite" aria-busy="true">
+    <div class="processing-orb" aria-hidden="true"><span>✧</span></div><p class="eyebrow">АРХИВ ОТВЕЧАЕТ</p><h2 id="processing-title">Пробуждаем карту</h2><p id="processing-detail">Собираем её образ и свойства…</p>
+  </div>
   <nav class="bottom-nav"><button class="nav-item active" data-screen="home"><span>⌂</span><small>Главная</small></button><button class="nav-item" data-screen="deck"><span>▤</span><small>Колода</small></button><button class="nav-item" data-screen="craft"><span>⚗</span><small>Крафт</small></button><button class="nav-item" data-screen="book"><span>♧</span><small>Книга табу</small></button><button class="nav-item" data-screen="trials"><span>⚔</span><small>Испытания</small></button></nav>
   <div class="card-viewer hidden" id="card-viewer" role="dialog" aria-modal="true" aria-label="Просмотр карты">
     <button class="viewer-close" id="viewer-close" aria-label="Закрыть просмотр">✕</button>
@@ -66,3 +77,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+
