@@ -58,3 +58,77 @@ body.modal-open{overflow:hidden}
 .collectible-card.card-motion{transform:none!important;transition:none!important}
 .collectible-card.card-motion .foil-glare{animation:none;transform:translate(var(--glare-x,0%),var(--glare-y,0%)) rotate(12deg);transition:transform .08s linear;will-change:transform}
 @media(prefers-reduced-motion:reduce){.collectible-card.card-motion .foil-glare{transition:none}}
+
+/* Card artwork test: full-resolution art loads in the viewer; the deck uses small lazy thumbnails. */
+.beta-test-banner{max-width:540px;margin:9px auto 0;padding:8px 10px;border:1px solid #7bd7ff;border-radius:9px;background:rgba(5,20,38,.9);color:#c8efff;text-align:center;font:10px/1.45 system-ui,sans-serif;box-shadow:0 0 14px #39bfff55}
+.beta-test-banner a{display:inline-block;margin-left:5px;color:#ffe29a;text-decoration:underline}
+.card.artwork-card{border-color:var(--card-accent,#d7b56f);box-shadow:0 0 12px color-mix(in srgb,var(--card-accent,#e5b85f) 34%,transparent),inset 0 0 0 1px #ffffff30,0 5px 14px #0008}
+.card.artwork-card .card-art{height:auto;aspect-ratio:2/3;background:#080a12;border:1px solid color-mix(in srgb,var(--card-accent,#e5b85f) 58%,transparent);box-shadow:0 0 13px color-mix(in srgb,var(--card-accent,#e5b85f) 36%,transparent)}
+.card.artwork-card .card-art img{object-fit:cover}
+.collectible-card.artwork-card{width:min(100%,calc(66vh * var(--card-ratio,.6667)));aspect-ratio:var(--card-ratio,.6667);border-color:var(--card-accent,#e5b85f);box-shadow:0 16px 55px #000b,0 0 14px color-mix(in srgb,var(--card-accent,#e5b85f) 55%,transparent),0 0 36px color-mix(in srgb,var(--card-accent,#e5b85f) 30%,transparent)}
+.collectible-card.artwork-card .card-frame.full-bleed-art{border-color:color-mix(in srgb,var(--card-accent,#e5b85f) 75%,white);background:#070911}
+.collectible-card.artwork-card .card-frame.full-bleed-art .card-illustration{object-fit:contain;background:#070911}
+.collectible-card.artwork-card .card-frame.full-bleed-art .card-caption{display:none}
+.collectible-card.artwork-card .foil-glare{opacity:.7}
+.collectible-card.artwork-card .card-frame.full-bleed-art:after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(130deg,transparent 24%,color-mix(in srgb,var(--card-accent,#e5b85f) 15%,transparent) 48%,transparent 70%);mix-blend-mode:screen;opacity:.55;animation:cardAura 5.5s ease-in-out infinite alternate}
+@keyframes cardAura{from{transform:translateX(-4%);opacity:.25}to{transform:translateX(4%);opacity:.7}}
+@media(prefers-reduced-motion:reduce){.collectible-card.artwork-card .card-frame.full-bleed-art:after{animation:none;opacity:.2}.collectible-card.artwork-card .foil-glare{animation:none}}
+
+/* Beta 2.3: one card frame for every artwork, explicit loading, and a read-only card archive. */
+.home-top-actions{position:absolute;z-index:2;top:15px;right:14px;display:flex;align-items:flex-start;gap:7px}
+.home-top-actions .event-chip{position:static}
+.catalog-button{min-height:48px;min-width:54px;padding:5px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--gold2);box-shadow:0 0 14px #0007}
+.catalog-button span{font-size:21px;line-height:1.1}
+.catalog-button small{font-size:8px;white-space:nowrap}
+.collectible-card.artwork-card{width:min(100%,calc(66vh * .6667));aspect-ratio:2/3}
+.collectible-card.artwork-card .card-frame.full-bleed-art{position:relative;isolation:isolate;background:radial-gradient(ellipse at 50% 38%,color-mix(in srgb,var(--card-accent,#607091) 48%,#101426),#080b15 75%)}
+.collectible-card.artwork-card .card-frame.full-bleed-art .card-illustration.artwork-foreground{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:contain;background:transparent}
+.collectible-card.artwork-card .card-frame.full-bleed-art:after{z-index:2}
+.catalog-screen{position:fixed;inset:0;z-index:80;overflow:auto;padding:calc(14px + env(safe-area-inset-top)) 12px calc(18px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at 50% 0,#1b2d4b,#070a13 72%);overscroll-behavior:contain}
+.catalog-panel{max-width:900px;min-height:100%;margin:auto}
+.catalog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px auto 12px;padding:12px;background:linear-gradient(100deg,rgba(5,11,27,.94),rgba(10,19,38,.72));border:1px solid var(--line);border-radius:14px}
+.catalog-header h1{font:600 clamp(22px,5vw,30px) 'Cinzel',serif;margin:0 0 4px;color:#fff0cb}
+.catalog-header p:last-child{font-size:11px;margin:0;color:#d7c9ad}
+.catalog-header .icon-button{flex:0 0 38px}
+.catalog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.catalog-card{min-width:0;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:stretch;padding:6px;border:1px solid color-mix(in srgb,var(--card-accent,#e5b85f) 72%,transparent);border-radius:10px;background:linear-gradient(160deg,#172943,#080d19);color:var(--text);text-align:center;box-shadow:0 0 9px color-mix(in srgb,var(--card-accent,#e5b85f) 22%,transparent),inset 0 0 0 1px #ffffff20}
+.catalog-art{width:100%;aspect-ratio:2/3;display:grid;place-items:center;overflow:hidden;border-radius:6px;background:radial-gradient(circle,var(--card-accent,#5d5a88),#0a1020 72%);font-size:34px;color:#ffdf96}
+.catalog-art img{width:100%;height:100%;object-fit:cover;display:block}
+.catalog-card>b{min-height:2.4em;display:grid;place-items:center;margin:5px 0 2px;font-size:10px;line-height:1.2}
+.catalog-card>small{font-size:8px;color:#f3cd80;line-height:1.2}
+.catalog-card>i{position:absolute;top:9px;left:9px;padding:3px 5px;border:1px solid #ffcbf6;border-radius:6px;background:#2c1438dd;color:#ffd4fb;font:700 7px system-ui,sans-serif;letter-spacing:.5px}
+.card-processing{position:fixed;inset:0;z-index:120;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:radial-gradient(ellipse at center,#1d2d4cfa,#070a13f7 72%);overscroll-behavior:contain}
+.card-processing .eyebrow{margin:18px 0 6px}
+.card-processing h2{margin:0;color:#fff0c9;font:600 clamp(20px,5vw,26px) 'Cinzel',serif}
+.card-processing p:last-child{max-width:280px;font-size:12px;line-height:1.5;color:#d8cdb8}
+.processing-orb{width:82px;height:82px;display:grid;place-items:center;border:1px solid #f3ce7d;border-radius:50%;background:radial-gradient(circle,#82613788,#1a1833 68%);box-shadow:0 0 16px #f5c65c88,inset 0 0 20px #b35be855;animation:processingPulse 1.15s ease-in-out infinite}
+.processing-orb span{color:#ffe9af;font-size:35px;text-shadow:0 0 18px #ffd46e;animation:processingTurn 2.8s linear infinite}
+@keyframes processingPulse{50%{box-shadow:0 0 28px #f5c65cbb,inset 0 0 28px #b35be877;transform:scale(1.04)}}
+@keyframes processingTurn{to{transform:rotate(360deg)}}
+@media(max-width:360px){.home-top-actions{right:9px;gap:5px}.home-top-actions .event-chip{gap:5px;padding:7px}.home-top-actions .event-chip small{font-size:9px}.catalog-grid{gap:6px}.catalog-card{padding:4px}}
+@media(min-width:720px){.catalog-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.processing-orb,.processing-orb span{animation:none}.collectible-card.artwork-card .card-frame.full-bleed-art:after{animation:none;opacity:.18}}
+
+/* Collection cards and craft ingredients use the same real art, sized for compact mobile layouts. */
+.card-emblem{position:relative;overflow:hidden;border:1px solid color-mix(in srgb,var(--accent,#d8a04e) 72%,white);box-shadow:0 0 12px color-mix(in srgb,var(--accent,#d8a04e) 35%,transparent)}
+.card-emblem img{display:block;width:100%;height:100%;object-fit:cover}
+.picker-symbol{overflow:hidden;border-color:color-mix(in srgb,var(--accent,#d8a04e) 70%,white);box-shadow:0 0 9px color-mix(in srgb,var(--accent,#d8a04e) 30%,transparent)}
+.picker-symbol img{display:block;width:100%;height:100%;object-fit:cover}
+.catalog-count-strip{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:10px 12px;border:1px solid #6d5b40;border-radius:10px;background:linear-gradient(105deg,#162441,#0b1221);color:#f4dfb4;font-size:10px}
+.catalog-grid{grid-template-columns:1fr;gap:8px}
+.catalog-card{display:flex;flex-direction:row;align-items:stretch;gap:10px;padding:7px;border-radius:11px;text-align:left;transition:transform .12s ease,border-color .18s ease,box-shadow .18s ease}
+.catalog-card:active{transform:scale(.985);border-color:color-mix(in srgb,var(--card-accent,#e5b85f) 80%,white);box-shadow:0 0 18px color-mix(in srgb,var(--card-accent,#e5b85f) 38%,transparent)}
+.catalog-art{position:relative;flex:0 0 76px;width:76px;height:114px;aspect-ratio:2/3;border:1px solid color-mix(in srgb,var(--card-accent,#e5b85f) 65%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--card-accent,#e5b85f) 24%,transparent)}
+.catalog-card-content{min-width:0;flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px}
+.catalog-card-heading{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.catalog-card-heading>b{font:600 13px 'Cinzel',serif;color:#fff0cb;line-height:1.2}
+.catalog-card-heading>i{flex:0 0 auto;padding:3px 5px;border:1px solid color-mix(in srgb,var(--card-accent,#e5b85f) 68%,transparent);border-radius:5px;background:color-mix(in srgb,var(--card-accent,#e5b85f) 13%,#111729);color:color-mix(in srgb,var(--card-accent,#e5b85f) 65%,white);font:700 7px system-ui,sans-serif;letter-spacing:.35px}
+.catalog-card-effect{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;color:#d5c9b3;font-size:10px;line-height:1.35}
+.catalog-world-count{color:#e8c879;font-size:9px;font-weight:700}
+.catalog-card-footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;padding-top:5px;border-top:1px solid #ffffff19}
+.catalog-card-footer>small{color:#bdb5a5;font-size:8px}
+.catalog-card-footer>small:first-child{color:#ffe2a0}
+.mythic-card.catalog-card{box-shadow:0 0 13px color-mix(in srgb,var(--card-accent,#e5b85f) 30%,transparent),inset 0 0 0 1px #ffffff22}
+@media(min-width:720px){.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.catalog-art{flex-basis:84px;width:84px;height:126px}}
+@media(max-width:360px){.catalog-art{flex-basis:66px;width:66px;height:99px}.catalog-card{gap:8px}.catalog-card-heading>b{font-size:12px}.catalog-card-effect{font-size:9px}}
+

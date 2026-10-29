@@ -32,7 +32,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-Telegram-Init-Data"],
 )
 
-# Demonstration draw weights. "Мечта" is globally capped at ten issued copies.
+# Demonstration draw weights. Mythic cards have low weights and global copy caps.
 CARD_DEFS = [
     ("Крестьянин", "Обычные", 4200, None),
     ("Воин", "Обычные", 2200, None),
@@ -45,7 +45,7 @@ CARD_DEFS = [
     ("Рыцарь", "Обычные", 650, None),
     ("Авел", "Обычные", 450, None),
     ("Каин", "Обычные", 450, None),
-    ("Мечта", "MYTHIC", 100, 10),
+    ("Мечта", "MYTHIC", 5, 10),
     ("Безумие", "MYTHIC", 25, None),
     ("Шут", "Особые", 250, None),
     ("Смерть", "Всадники", 90, None),
@@ -55,6 +55,10 @@ CARD_DEFS = [
     ("Дружба", "Особые", 0, None),
     ("Одержимость", "Особые", 0, None),
     ("Королевство", "Особые", 0, None),
+    ("Слепой бог удачи", "MYTHIC", 2, 5),
+    ("Отчаяние", "MYTHIC", 2, 5),
+    ("Воображение", "MYTHIC", 4, 10),
+    ("Свобода", "MYTHIC", 4, 10),
 ]
 
 RECIPES = {
@@ -62,6 +66,12 @@ RECIPES = {
     "Дружба": {"Авел": 1, "Каин": 1},
     "Одержимость": {"Мечта": 1, "Безумие": 1},
 }
+catalog_counts_cache: tuple[float, dict[str, dict[str, int]]] | None = None
+
+
+def invalidate_catalog_counts_cache():
+    global catalog_counts_cache
+    catalog_counts_cache = None
 
 
 def get_db():
@@ -99,6 +109,7 @@ def init_db():
             """)
             cur.execute("CREATE INDEX IF NOT EXISTS idx_instances_owner ON card_instances(owner_id, zone)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_instances_card ON card_instances(card_name)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_instances_card_owner ON card_instances(card_name, owner_id)")
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS starter_grants (
                     owner_id TEXT PRIMARY KEY,
@@ -172,9 +183,24 @@ def health():
 
 @app.get("/api/catalog")
 def catalog():
+    global catalog_counts_cache
+    now = time.monotonic()
+    if catalog_counts_cache is None or catalog_counts_cache[0] <= now:
+        with get_db() as con:
+            rows = con.execute(
+                """SELECT card_name, COUNT(*) AS copy_count,
+                          COUNT(DISTINCT owner_id) AS owner_count
+                   FROM card_instances GROUP BY card_name"""
+            ).fetchall()
+        catalog_counts_cache = (
+            now + 60,
+            {row["card_name"]: {"copy_count": row["copy_count"], "owner_count": row["owner_count"]}
+             for row in rows},
+        )
     return {
         "cards": [
-            {"name": name, "rarity": rarity, "weight": weight, "max_copies": cap}
+            {"name": name, "rarity": rarity, "weight": weight, "max_copies": cap,
+             **catalog_counts_cache[1].get(name, {"copy_count": 0, "owner_count": 0})}
             for name, rarity, weight, cap in CARD_DEFS
         ],
         "recipes": RECIPES,
@@ -189,12 +215,12 @@ def grant_beta_starter_cards(con, owner_id: str):
         (owner_id, int(time.time())),
     ).fetchone()
     if not granted:
-        return
+        return False
 
     starter_names = ["Безумие"]
     candidates = con.execute(
         """SELECT name FROM card_defs
-           WHERE name <> 'Безумие' AND weight > 0
+           WHERE name <> 'Безумие' AND rarity <> 'MYTHIC' AND weight > 0
              AND (max_copies IS NULL OR issued_copies < max_copies)"""
     ).fetchall()
     if candidates:
@@ -211,6 +237,8 @@ def grant_beta_starter_cards(con, owner_id: str):
                    VALUES (%s, %s, 'deck', %s)""",
                 (card_name, owner_id, int(time.time())),
             )
+    invalidate_catalog_counts_cache()
+    return True
 
 
 @app.get("/api/me/cards")
@@ -264,11 +292,13 @@ def draw_card(x_telegram_init_data: str | None = Header(default=None)):
                    VALUES (%s, %s, 'deck', %s) RETURNING serial""",
                 (chosen["name"], user["id"], int(time.time())),
             ).fetchone()
-            return {"ok": True, "card": {
+            result = {"ok": True, "card": {
                 "name": chosen["name"], "rarity": chosen["rarity"],
                 "serial": int(instance["serial"]), "max_copies": chosen["max_copies"],
                 "issued_copies": int(updated["issued_copies"]),
             }, "message": "Card granted"}
+        invalidate_catalog_counts_cache()
+        return result
     except HTTPException:
         raise
     except Exception:
@@ -337,8 +367,11 @@ def craft_card(body: CraftRequest, x_telegram_init_data: str | None = Header(def
                    VALUES (%s, %s, 'deck', %s) RETURNING serial""",
                 (output_name, user["id"], int(time.time())),
             ).fetchone()
-            return {"ok": True, "card": {"name": output_name, "serial": int(new_card["serial"]), "rarity": "Особые"}}
+            result = {"ok": True, "card": {"name": output_name, "serial": int(new_card["serial"]), "rarity": "Особые"}}
+        invalidate_catalog_counts_cache()
+        return result
     except HTTPException:
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Craft failed safely; try again")
+
